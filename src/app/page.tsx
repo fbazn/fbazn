@@ -1,9 +1,9 @@
-// updated version with cleaned unused variables
+// updated version with edit/delete functionality
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
-import { LogOut, PlusCircle, Eye } from 'lucide-react'
+import { LogOut, PlusCircle, Eye, Trash2, Pencil } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,6 +77,16 @@ export default function Home() {
     }
   }
 
+  const deleteWholesaler = async (id: string) => {
+    await supabase.from('wholesalers').delete().eq('id', id)
+    fetchWholesalers(user!.id)
+  }
+
+  const deleteProduct = async (id: string, wholesalerId: string) => {
+    await supabase.from('products').delete().eq('id', id)
+    fetchProducts(wholesalerId)
+  }
+
   const addProduct = async () => {
     if (!newProduct.name || !user || !selectedWholesaler) return
     const { error } = await supabase.from('products').insert([
@@ -108,6 +118,17 @@ export default function Home() {
               <input type="text" placeholder="Wholesaler Link" value={link} onChange={(e) => setLink(e.target.value)} className="p-2 border rounded" />
               <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add</button>
             </form>
+            <ul className="space-y-4">
+              {wholesalers.map(w => (
+                <li key={w.id} className="border p-4 rounded flex justify-between items-center">
+                  <div>
+                    <div className="font-semibold">{w.name}</div>
+                    <a href={w.link} className="text-sm text-blue-600 underline">{w.link}</a>
+                  </div>
+                  <button onClick={() => deleteWholesaler(w.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" /></button>
+                </li>
+              ))}
+            </ul>
           </div>
         )
       case 'add_product':
@@ -141,14 +162,17 @@ export default function Home() {
                 <h2 className="font-semibold text-lg mb-2">{w.name}</h2>
                 <ul className="space-y-2">
                   {products[w.id]?.map(p => (
-                    <li key={p.id} className="border p-2 rounded flex justify-between">
+                    <li key={p.id} className="border p-2 rounded flex justify-between items-center">
                       <div>
                         <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-gray-600">ASIN: {p.asin}</div>
-                      </div>
-                      <div className="text-right text-sm">
-                        £{p.purchase_price.toFixed(2)}<br />
+                        <div className="text-sm">£{p.purchase_price.toFixed(2)}</div>
                         {p.vat_included && <span className="text-xs text-green-600">VAT incl.</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => deleteProduct(p.id, w.id)} className="text-red-600 hover:text-red-800">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </li>
                   ))}
