@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -11,10 +11,27 @@ const supabase = createClient(
 const backgroundImageUrl =
   'https://images.unsplash.com/photo-1605902711622-cfb43c4437b7?auto=format&fit=crop&w=1950&q=80'
 
+interface ProductInput {
+  name?: string
+  product_link?: string
+  qty_in_box?: number | string
+  purchase_price?: number | string
+  vat_included?: boolean
+  asin?: string
+}
+
+interface Product {
+  id: string
+  name: string
+  asin: string
+  purchase_price: number
+  vat_included: boolean
+}
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
-  const [products, setProducts] = useState<Record<string, any[]>>({})
+  const [products, setProducts] = useState<Record<string, Product[]>>({})
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
   const [email, setEmail] = useState('')
@@ -22,7 +39,15 @@ export default function Home() {
   const [authError, setAuthError] = useState('')
   const [mode, setMode] = useState<'login' | 'register'>('login')
 
-  const [productInputs, setProductInputs] = useState<Record<string, any>>({})
+  const [productInputs, setProductInputs] = useState<Record<string, ProductInput>>({})
+
+  const fetchWholesalers = useCallback(async (uid: string) => {
+    const { data } = await supabase.from('wholesalers').select('*').eq('user_id', uid)
+    if (data) {
+      setWholesalers(data)
+      data.forEach(w => fetchProducts(w.id))
+    }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -40,7 +65,7 @@ export default function Home() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchWholesalers])
 
   const handleRegister = async () => {
     setAuthError('')
@@ -58,17 +83,9 @@ export default function Home() {
     await supabase.auth.signOut()
   }
 
-  const fetchWholesalers = async (uid: string) => {
-    const { data } = await supabase.from('wholesalers').select('*').eq('user_id', uid)
-    if (data) {
-      setWholesalers(data)
-      data.forEach(w => fetchProducts(w.id))
-    }
-  }
-
   const fetchProducts = async (wholesalerId: string) => {
     const { data } = await supabase.from('products').select('*').eq('wholesaler_id', wholesalerId)
-    setProducts(prev => ({ ...prev, [wholesalerId]: data || [] }))
+    setProducts(prev => ({ ...prev, [wholesalerId]: (data || []) as Product[] }))
   }
 
   const addWholesaler = async (e: React.FormEvent) => {
@@ -103,7 +120,7 @@ export default function Home() {
     }
   }
 
-  const handleProductChange = (wholesalerId: string, field: string, value: any) => {
+  const handleProductChange = (wholesalerId: string, field: keyof ProductInput, value: any) => {
     setProductInputs(prev => ({
       ...prev,
       [wholesalerId]: {
