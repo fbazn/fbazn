@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, User } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,8 +9,8 @@ const supabase = createClient(
 )
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
-  const [wholesalers, setWholesalers] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
   const [email, setEmail] = useState('')
@@ -63,13 +63,13 @@ export default function Home() {
       .from('wholesalers')
       .select('*')
       .eq('user_id', uid)
-    setWholesalers(data || [])
+    if (data) setWholesalers(data)
   }
 
   const addWholesaler = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !link || !user) return
-    const { data, error } = await supabase.from('wholesalers').insert([
+    const { error } = await supabase.from('wholesalers').insert([
       {
         user_id: user.id,
         name,
@@ -162,7 +162,7 @@ export default function Home() {
             <p className="text-sm text-center">
               {mode === 'login' ? (
                 <>
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <button onClick={() => setMode('register')} className="underline text-blue-600">
                     Register
                   </button>
