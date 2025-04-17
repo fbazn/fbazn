@@ -88,7 +88,7 @@ export default function Home() {
     setProducts(prev => ({ ...prev, [wholesalerId]: (data || []) as Product[] }))
   }
 
-  const addWholesaler = async (e: React.FormEvent) => {
+  const addWholesaler = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!name || !link || !user) return
     const { error } = await supabase.from('wholesalers').insert([{ user_id: user.id, name, link }])
@@ -120,7 +120,11 @@ export default function Home() {
     }
   }
 
-  const handleProductChange = (wholesalerId: string, field: keyof ProductInput, value: any) => {
+  const handleProductChange = (
+    wholesalerId: string,
+    field: keyof ProductInput,
+    value: string | number | boolean
+  ) => {
     setProductInputs(prev => ({
       ...prev,
       [wholesalerId]: {
