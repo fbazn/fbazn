@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
-import { LogOut, PlusCircle, Eye, Trash2, Pencil } from 'lucide-react'
+import { LogOut, PlusCircle, Eye, Trash2 } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
