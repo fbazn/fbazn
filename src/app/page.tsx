@@ -1,4 +1,4 @@
-// updated version with sidebar and full product CRUD
+// updated version with working product and wholesaler CRUD
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -21,9 +21,15 @@ interface Product {
   wholesaler_id: string;
 }
 
+interface Wholesaler {
+  id: string;
+  name: string;
+  link: string;
+}
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
-  const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
+  const [wholesalers, setWholesalers] = useState<Wholesaler[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [editingProduct, setEditingProduct] = useState<Partial<Product>>({})
@@ -205,7 +211,7 @@ export default function Home() {
           </div>
         )
       default:
-        return null // keep others unchanged for now
+        return null
     }
   }
 
