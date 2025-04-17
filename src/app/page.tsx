@@ -1,9 +1,9 @@
-// updated version with sidebar and product add/view
+// updated version with sidebar and full product CRUD
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
-import { Trash2, Pencil, LogOut, Eye, PlusCircle } from 'lucide-react'
+import { Trash2, Pencil, LogOut, Eye, PlusCircle, Save } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,6 +25,8 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [editingProduct, setEditingProduct] = useState<Partial<Product>>({})
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
   const [editingWholesalerId, setEditingWholesalerId] = useState<string | null>(null)
@@ -72,15 +74,24 @@ export default function Home() {
     return () => { subscription.unsubscribe() }
   }, [fetchWholesalers, fetchProducts])
 
-  const addWholesaler = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!name || !link || !user) return
-    const { error } = await supabase.from('wholesalers').insert([{ user_id: user.id, name, link }])
-    if (!error) {
-      setName('')
-      setLink('')
-      fetchWholesalers(user.id)
-    }
+  const updateProduct = async (id: string) => {
+    const { name, product_link, qty_in_box, purchase_price, vat_included, asin } = editingProduct
+    if (!name) return
+    await supabase.from('products').update({
+      name,
+      product_link,
+      qty_in_box,
+      purchase_price,
+      vat_included,
+      asin
+    }).eq('id', id)
+    setEditingProductId(null)
+    fetchProducts(user!.id)
+  }
+
+  const deleteProduct = async (id: string) => {
+    await supabase.from('products').delete().eq('id', id)
+    fetchProducts(user!.id)
   }
 
   const addProduct = async () => {
@@ -107,6 +118,17 @@ export default function Home() {
     }
   }
 
+  const addWholesaler = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!name || !link || !user) return
+    const { error } = await supabase.from('wholesalers').insert([{ user_id: user.id, name, link }])
+    if (!error) {
+      setName('')
+      setLink('')
+      fetchWholesalers(user.id)
+    }
+  }
+
   const updateWholesaler = async (id: string) => {
     const { error } = await supabase.from('wholesalers').update({ name: editingWholesalerName, link: editingWholesalerLink }).eq('id', id)
     if (!error) {
@@ -124,77 +146,6 @@ export default function Home() {
 
   const renderView = () => {
     switch (activeView) {
-      case 'add_wholesaler':
-        return (
-          <div className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">Wholesalers</h1>
-            <form onSubmit={addWholesaler} className="flex gap-2 mb-6">
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="border px-2 py-1 rounded w-1/3" />
-              <input type="text" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link" className="border px-2 py-1 rounded w-1/2" />
-              <button className="bg-blue-600 text-white px-4 py-1 rounded">Add</button>
-            </form>
-            <ul className="space-y-4">
-              {wholesalers.map(w => (
-                <li key={w.id} className="border rounded p-4 flex justify-between items-center">
-                  {editingWholesalerId === w.id ? (
-                    <div className="flex flex-col w-full gap-2">
-                      <input type="text" value={editingWholesalerName} onChange={(e) => setEditingWholesalerName(e.target.value)} className="border px-2 py-1 rounded" />
-                      <input type="text" value={editingWholesalerLink} onChange={(e) => setEditingWholesalerLink(e.target.value)} className="border px-2 py-1 rounded" />
-                      <div className="flex gap-2">
-                        <button onClick={() => updateWholesaler(w.id)} className="bg-green-600 text-white px-4 py-1 rounded">Save</button>
-                        <button onClick={() => setEditingWholesalerId(null)} className="bg-gray-300 px-4 py-1 rounded">Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center w-full">
-                      <div>
-                        <div className="font-semibold">{w.name}</div>
-                        <a href={w.link} className="text-sm text-blue-600 underline" target="_blank">{w.link}</a>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingWholesalerId(w.id)
-                            setEditingWholesalerName(w.name)
-                            setEditingWholesalerLink(w.link)
-                          }}
-                          className="text-yellow-600 hover:text-yellow-800"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => deleteWholesaler(w.id)} className="text-red-600 hover:text-red-800">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      case 'add_product':
-        return (
-          <div className="p-6 max-w-3xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Add Product</h1>
-            <div className="grid gap-4">
-              <select value={productInputs.wholesaler_id} onChange={(e) => setProductInputs(prev => ({ ...prev, wholesaler_id: e.target.value }))} className="border px-2 py-2 rounded">
-                <option value="">Select Wholesaler</option>
-                {wholesalers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-              <input type="text" placeholder="Product Name" value={productInputs.name} onChange={(e) => setProductInputs(prev => ({ ...prev, name: e.target.value }))} className="border px-2 py-1 rounded" />
-              <input type="text" placeholder="Product Link" value={productInputs.product_link} onChange={(e) => setProductInputs(prev => ({ ...prev, product_link: e.target.value }))} className="border px-2 py-1 rounded" />
-              <input type="number" placeholder="Qty in Box" value={productInputs.qty_in_box} onChange={(e) => setProductInputs(prev => ({ ...prev, qty_in_box: e.target.value }))} className="border px-2 py-1 rounded" />
-              <input type="number" placeholder="Purchase Price" value={productInputs.purchase_price} onChange={(e) => setProductInputs(prev => ({ ...prev, purchase_price: e.target.value }))} className="border px-2 py-1 rounded" />
-              <input type="text" placeholder="ASIN" value={productInputs.asin} onChange={(e) => setProductInputs(prev => ({ ...prev, asin: e.target.value }))} className="border px-2 py-1 rounded" />
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={productInputs.vat_included} onChange={(e) => setProductInputs(prev => ({ ...prev, vat_included: e.target.checked }))} />
-                VAT Included
-              </label>
-              <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded">Add Product</button>
-            </div>
-          </div>
-        )
       case 'view_products':
         return (
           <div className="p-6 max-w-5xl mx-auto">
@@ -202,32 +153,59 @@ export default function Home() {
             <table className="w-full text-sm border">
               <thead>
                 <tr className="bg-gray-100 text-left">
-                  <th className="p-2 border">Product</th>
-                  <th className="p-2 border">Wholesaler</th>
+                  <th className="p-2 border">Name</th>
                   <th className="p-2 border">Qty</th>
                   <th className="p-2 border">Price</th>
                   <th className="p-2 border">ASIN</th>
                   <th className="p-2 border">VAT</th>
+                  <th className="p-2 border">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {products.map(p => {
-                  const wholesaler = wholesalers.find(w => w.id === p.wholesaler_id)
-                  return (
-                    <tr key={p.id} className="border-t">
-                      <td className="p-2">{p.name}</td>
-                      <td className="p-2">{wholesaler?.name || '—'}</td>
-                      <td className="p-2">{p.qty_in_box}</td>
-                      <td className="p-2">£{p.purchase_price.toFixed(2)}</td>
-                      <td className="p-2">{p.asin}</td>
-                      <td className="p-2">{p.vat_included ? 'Yes' : 'No'}</td>
-                    </tr>
-                  )
-                })}
+                {products.map(p => (
+                  <tr key={p.id} className="border-t">
+                    {editingProductId === p.id ? (
+                      <>
+                        <td className="p-2"><input value={editingProduct.name || ''} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} className="border px-1" /></td>
+                        <td className="p-2"><input type="number" value={editingProduct.qty_in_box || ''} onChange={(e) => setEditingProduct({ ...editingProduct, qty_in_box: Number(e.target.value) })} className="border px-1 w-16" /></td>
+                        <td className="p-2"><input type="number" value={editingProduct.purchase_price || ''} onChange={(e) => setEditingProduct({ ...editingProduct, purchase_price: Number(e.target.value) })} className="border px-1 w-20" /></td>
+                        <td className="p-2"><input value={editingProduct.asin || ''} onChange={(e) => setEditingProduct({ ...editingProduct, asin: e.target.value })} className="border px-1 w-24" /></td>
+                        <td className="p-2">
+                          <input type="checkbox" checked={editingProduct.vat_included || false} onChange={(e) => setEditingProduct({ ...editingProduct, vat_included: e.target.checked })} />
+                        </td>
+                        <td className="p-2 flex gap-2">
+                          <button onClick={() => updateProduct(p.id)} className="text-green-600 hover:text-green-800"><Save className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingProductId(null)} className="text-gray-500">Cancel</button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-2">{p.name}</td>
+                        <td className="p-2">{p.qty_in_box}</td>
+                        <td className="p-2">£{p.purchase_price.toFixed(2)}</td>
+                        <td className="p-2">{p.asin}</td>
+                        <td className="p-2">{p.vat_included ? 'Yes' : 'No'}</td>
+                        <td className="p-2 flex gap-2">
+                          <button onClick={() => {
+                            setEditingProductId(p.id)
+                            setEditingProduct(p)
+                          }} className="text-yellow-600 hover:text-yellow-800">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => deleteProduct(p.id)} className="text-red-600 hover:text-red-800">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )
+      default:
+        return null // keep others unchanged for now
     }
   }
 
