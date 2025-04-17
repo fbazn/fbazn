@@ -4,6 +4,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
 import { Trash2, Pencil, LogOut, Eye, PlusCircle, Save } from 'lucide-react'
+import ConnectAmazon from '@/components/ConnectAmazon'
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -220,24 +222,27 @@ export default function Home() {
   return (
     <div className="flex h-screen">
       <aside className="w-64 bg-gray-900 text-white flex flex-col justify-between">
-        <div>
-          <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
-          <nav className="p-4 space-y-2 text-sm">
-            <button onClick={() => setActiveView('add_wholesaler')} className="flex items-center gap-2 text-gray-300 hover:text-white">
-              <PlusCircle className="h-4 w-4" /> Add Wholesaler
-            </button>
-            <button onClick={() => setActiveView('add_product')} className="flex items-center gap-2 text-gray-300 hover:text-white">
-              <PlusCircle className="h-4 w-4" /> Add Product
-            </button>
-            <button onClick={() => setActiveView('view_products')} className="flex items-center gap-2 text-gray-300 hover:text-white">
-              <Eye className="h-4 w-4" /> View Products
-            </button>
-          </nav>
-        </div>
-        <button onClick={handleLogout} className="flex items-center justify-center gap-2 p-4 bg-red-600 hover:bg-red-700 text-sm">
-          <LogOut className="h-4 w-4" /> Log Out
-        </button>
-      </aside>
+  <div>
+    <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
+    <nav className="p-4 space-y-2 text-sm">
+      {/* Your other nav buttons */}
+      <button onClick={() => setActiveView('add_wholesaler')} className="...">Add Wholesaler</button>
+      <button onClick={() => setActiveView('add_product')} className="...">Add Product</button>
+      <button onClick={() => setActiveView('view_products')} className="...">View Products</button>
+    </nav>
+  </div>
+
+  <div className="p-4 space-y-2">
+    <ConnectAmazon />
+    <button
+      onClick={handleLogout}
+      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded"
+    >
+      Log Out
+    </button>
+  </div>
+</aside>
+
       <main className="flex-1 overflow-auto bg-gray-50">
         {renderView()}
       </main>
