@@ -1,16 +1,14 @@
-// updated version with sidebar views
+// updated version with cleaned unused variables
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
-import { LayoutDashboard, LogOut, PlusCircle, Eye } from 'lucide-react'
+import { LogOut, PlusCircle, Eye } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-const backgroundImageUrl = 'https://images.unsplash.com/photo-1605902711622-cfb43c4437b7?auto=format&fit=crop&w=1950&q=80'
 
 interface ProductInput {
   name?: string
@@ -35,13 +33,7 @@ export default function Home() {
   const [products, setProducts] = useState<Record<string, Product[]>>({})
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState('')
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [activeView, setActiveView] = useState<'add_wholesaler' | 'add_product' | 'view_products'>('add_wholesaler')
-
-  const [productInputs, setProductInputs] = useState<Record<string, ProductInput>>({})
   const [newProduct, setNewProduct] = useState<ProductInput>({})
   const [selectedWholesaler, setSelectedWholesaler] = useState('')
 
@@ -66,18 +58,6 @@ export default function Home() {
 
     return () => { subscription.unsubscribe() }
   }, [fetchWholesalers])
-
-  const handleRegister = async () => {
-    setAuthError('')
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) setAuthError(error.message)
-  }
-
-  const handleLogin = async () => {
-    setAuthError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setAuthError(error.message)
-  }
 
   const handleLogout = async () => await supabase.auth.signOut()
 
@@ -180,12 +160,7 @@ export default function Home() {
     }
   }
 
-  if (!user) {
-    return (
-      <main className="min-h-screen flex">...
-      </main>
-    )
-  }
+  if (!user) return <main className="min-h-screen flex">...</main>
 
   return (
     <div className="flex h-screen">
