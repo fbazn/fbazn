@@ -13,6 +13,10 @@ export default function Home() {
   const [wholesalers, setWholesalers] = useState<any[]>([])
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [mode, setMode] = useState<'login' | 'register'>('login')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,8 +36,22 @@ export default function Home() {
     }
   }, [])
 
+  const handleRegister = async () => {
+    setAuthError('')
+    const { error } = await supabase.auth.signUp({
+      email,
+      password
+    })
+    if (error) setAuthError(error.message)
+  }
+
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'github' })
+    setAuthError('')
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+    if (error) setAuthError(error.message)
   }
 
   const handleLogout = async () => {
@@ -116,12 +134,49 @@ export default function Home() {
             </div>
           </>
         ) : (
-          <button
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={handleLogin}
-          >
-            Login with GitHub
-          </button>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-2">
+              {mode === 'login' ? 'Login' : 'Register'} to fbazn
+            </h2>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 border rounded"
+            />
+            {authError && <p className="text-red-500 text-sm">{authError}</p>}
+            <button
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full"
+              onClick={mode === 'login' ? handleLogin : handleRegister}
+            >
+              {mode === 'login' ? 'Login' : 'Register'}
+            </button>
+            <p className="text-sm text-center">
+              {mode === 'login' ? (
+                <>
+                  Don't have an account?{' '}
+                  <button onClick={() => setMode('register')} className="underline text-blue-600">
+                    Register
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button onClick={() => setMode('login')} className="underline text-blue-600">
+                    Login
+                  </button>
+                </>
+              )}
+            </p>
+          </div>
         )}
       </div>
     </main>
