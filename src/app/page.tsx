@@ -10,23 +10,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-interface ProductInput {
-  name?: string
-  product_link?: string
-  qty_in_box?: number | string
-  purchase_price?: number | string
-  vat_included?: boolean
-  asin?: string
-}
-
-interface Product {
-  id: string
-  name: string
-  asin: string
-  purchase_price: number
-  vat_included: boolean
-}
-
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
