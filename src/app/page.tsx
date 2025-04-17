@@ -84,48 +84,49 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-xl">
-        <h1 className="text-3xl font-bold mb-6">Welcome to fbazn 🚀</h1>
+    <main className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4">
+      <div className="max-w-2xl mx-auto bg-white p-8 rounded-3xl shadow-2xl">
+        <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">fbazn 🔍</h1>
         {user ? (
           <>
-            <p className="mb-4">Logged in as {user.email}</p>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mb-6"
-              onClick={handleLogout}
-            >
-              Log Out
-            </button>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-gray-700">Logged in as <strong>{user.email}</strong></p>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+                onClick={handleLogout}
+              >
+                Log Out
+              </button>
+            </div>
 
-            <form onSubmit={addWholesaler} className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Add Wholesaler</h2>
+            <form onSubmit={addWholesaler} className="mb-8 space-y-4">
+              <h2 className="text-2xl font-semibold text-gray-700">Add Wholesaler</h2>
               <input
                 type="text"
                 placeholder="Wholesaler Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full p-2 mb-2 border rounded"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
               <input
                 type="text"
                 placeholder="Wholesaler Link"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
-                className="w-full p-2 mb-2 border rounded"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
-              <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+              <button className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold">
                 Add Wholesaler
               </button>
             </form>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Your Wholesalers</h2>
-              <ul className="space-y-2">
+              <h2 className="text-2xl font-semibold text-gray-700 mb-4">Your Wholesalers</h2>
+              <ul className="space-y-4">
                 {wholesalers.map((w) => (
-                  <li key={w.id} className="border p-3 rounded">
-                    <strong>{w.name}</strong>
-                    <br />
-                    <a href={w.link} target="_blank" className="text-blue-600 underline">
+                  <li key={w.id} className="bg-gray-50 border border-gray-200 p-4 rounded-xl shadow-sm">
+                    <strong className="block text-lg text-gray-800 mb-1">{w.name}</strong>
+                    <a href={w.link} target="_blank" className="text-blue-600 underline break-words">
                       {w.link}
                     </a>
                   </li>
@@ -135,7 +136,7 @@ export default function Home() {
           </>
         ) : (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-2">
+            <h2 className="text-2xl font-semibold text-center text-gray-800">
               {mode === 'login' ? 'Login' : 'Register'} to fbazn
             </h2>
             <input
@@ -143,23 +144,23 @@ export default function Home() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            {authError && <p className="text-red-500 text-sm">{authError}</p>}
+            {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
             <button
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold"
               onClick={mode === 'login' ? handleLogin : handleRegister}
             >
               {mode === 'login' ? 'Login' : 'Register'}
             </button>
-            <p className="text-sm text-center">
+            <p className="text-sm text-center text-gray-600">
               {mode === 'login' ? (
                 <>
                   Don&apos;t have an account?{' '}
