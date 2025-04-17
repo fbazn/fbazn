@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
+import { LayoutDashboard, LogOut } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -134,94 +135,110 @@ export default function Home() {
     }))
   }
 
+  if (!user) {
+    return (
+      <main className="min-h-screen flex">
+        <div
+          className="w-1/2 hidden md:block bg-cover bg-center"
+          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+        >
+          <div className="w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
+            <h1 className="text-white text-4xl font-bold max-w-md text-center">
+              fbazn: Your Amazon FBA Sourcing Companion
+            </h1>
+          </div>
+        </div>
+
+        <div className="w-full md:w-1/2 flex items-center justify-center bg-white p-8">
+          <div className="w-full max-w-md space-y-6">
+            <h2 className="text-3xl font-bold text-gray-800 text-center">
+              {mode === 'login' ? 'Login' : 'Register'} to fbazn
+            </h2>
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
+            {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold" onClick={mode === 'login' ? handleLogin : handleRegister}>
+              {mode === 'login' ? 'Login' : 'Register'}
+            </button>
+            <p className="text-center text-sm text-gray-600">
+              {mode === 'login' ? (
+                <>Don&apos;t have an account? <button onClick={() => setMode('register')} className="underline text-blue-600">Register</button></>
+              ) : (
+                <>Already have an account? <button onClick={() => setMode('login')} className="underline text-blue-600">Login</button></>
+              )}
+            </p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
-    <main className="min-h-screen flex">
-      <div
-        className="w-1/2 hidden md:block bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImageUrl})` }}
-      >
-        <div className="w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-          <h1 className="text-white text-4xl font-bold max-w-md text-center">
-            fbazn: Your Amazon FBA Sourcing Companion
-          </h1>
-        </div>
-      </div>
-
-      <div className="w-full md:w-1/2 flex items-center justify-center bg-white p-8 overflow-auto">
-        <div className="w-full max-w-md">
-          {user ? (
-            <>
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-gray-700">Logged in as <strong>{user.email}</strong></p>
-                <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md" onClick={handleLogout}>Log Out</button>
-              </div>
-
-              <form onSubmit={addWholesaler} className="mb-8 space-y-4">
-                <h2 className="text-2xl font-semibold text-gray-700">Add Wholesaler</h2>
-                <input type="text" placeholder="Wholesaler Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
-                <input type="text" placeholder="Wholesaler Link" value={link} onChange={(e) => setLink(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">Add Wholesaler</button>
-              </form>
-
-              <div>
-                <h2 className="text-2xl font-semibold text-gray-700 mb-4">Your Wholesalers</h2>
-                <ul className="space-y-8">
-                  {wholesalers.map((w) => (
-                    <li key={w.id} className="bg-gray-100 p-4 rounded-xl border">
-                      <strong className="text-lg text-gray-800 block mb-1">{w.name}</strong>
-                      <a href={w.link} target="_blank" className="text-blue-600 underline break-words">{w.link}</a>
-
-                      <div className="mt-4 space-y-2">
-                        <h3 className="text-md font-semibold text-gray-700">Add Product</h3>
-                        <input type="text" placeholder="Product Name" value={productInputs[w.id]?.name || ''} onChange={(e) => handleProductChange(w.id, 'name', e.target.value)} className="w-full p-2 border rounded" />
-                        <input type="text" placeholder="Product Link" value={productInputs[w.id]?.product_link || ''} onChange={(e) => handleProductChange(w.id, 'product_link', e.target.value)} className="w-full p-2 border rounded" />
-                        <input type="number" placeholder="Qty in Box" value={productInputs[w.id]?.qty_in_box || ''} onChange={(e) => handleProductChange(w.id, 'qty_in_box', e.target.value)} className="w-full p-2 border rounded" />
-                        <input type="number" placeholder="Purchase Price" value={productInputs[w.id]?.purchase_price || ''} onChange={(e) => handleProductChange(w.id, 'purchase_price', e.target.value)} className="w-full p-2 border rounded" />
-                        <input type="text" placeholder="ASIN" value={productInputs[w.id]?.asin || ''} onChange={(e) => handleProductChange(w.id, 'asin', e.target.value)} className="w-full p-2 border rounded" />
-                        <label className="inline-flex items-center space-x-2">
-                          <input type="checkbox" checked={productInputs[w.id]?.vat_included || false} onChange={(e) => handleProductChange(w.id, 'vat_included', e.target.checked)} />
-                          <span className="text-sm text-gray-700">VAT Included</span>
-                        </label>
-                        <button onClick={() => addProduct(w.id)} className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded">Add Product</button>
-                      </div>
-
-                      <div className="mt-4">
-                        <h4 className="font-semibold text-gray-700">Products</h4>
-                        <ul className="mt-2 space-y-2">
-                          {products[w.id]?.map((p) => (
-                            <li key={p.id} className="border p-2 rounded">
-                              <strong>{p.name}</strong> ({p.asin}) - £{p.purchase_price} {p.vat_included ? '(incl. VAT)' : ''}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          ) : (
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-gray-800 text-center">
-                {mode === 'login' ? 'Login' : 'Register'} to fbazn
-              </h2>
-              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
-              <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg" />
-              {authError && <p className="text-red-500 text-sm text-center">{authError}</p>}
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold" onClick={mode === 'login' ? handleLogin : handleRegister}>
-                {mode === 'login' ? 'Login' : 'Register'}
-              </button>
-              <p className="text-center text-sm text-gray-600">
-                {mode === 'login' ? (
-                  <>Don&apos;t have an account? <button onClick={() => setMode('register')} className="underline text-blue-600">Register</button></>
-                ) : (
-                  <>Already have an account? <button onClick={() => setMode('login')} className="underline text-blue-600">Login</button></>
-                )}
-              </p>
+    <div className="flex h-screen">
+      <aside className="w-64 bg-gray-900 text-white flex flex-col justify-between">
+        <div>
+          <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
+          <nav className="p-4 space-y-2">
+            <div className="flex items-center space-x-2 text-sm text-gray-300">
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Dashboard</span>
             </div>
-          )}
+          </nav>
         </div>
-      </div>
-    </main>
+        <button onClick={handleLogout} className="flex items-center justify-center gap-2 p-4 bg-red-600 hover:bg-red-700 text-sm">
+          <LogOut className="h-4 w-4" /> Log Out
+        </button>
+      </aside>
+
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
+        <h1 className="text-xl font-bold mb-6">Your Wholesalers</h1>
+        <form onSubmit={addWholesaler} className="mb-6 space-x-4">
+          <input type="text" placeholder="Wholesaler Name" value={name} onChange={(e) => setName(e.target.value)} className="p-2 border rounded w-60" />
+          <input type="text" placeholder="Wholesaler Link" value={link} onChange={(e) => setLink(e.target.value)} className="p-2 border rounded w-60" />
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add</button>
+        </form>
+
+        <div className="grid gap-6">
+          {wholesalers.map(w => (
+            <div key={w.id} className="bg-white border rounded-lg p-4 shadow">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <div className="font-semibold text-lg">{w.name}</div>
+                  <a href={w.link} target="_blank" className="text-sm text-blue-600 underline break-words">{w.link}</a>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <input type="text" placeholder="Product Name" value={productInputs[w.id]?.name || ''} onChange={(e) => handleProductChange(w.id, 'name', e.target.value)} className="p-2 border rounded" />
+                <input type="text" placeholder="Product Link" value={productInputs[w.id]?.product_link || ''} onChange={(e) => handleProductChange(w.id, 'product_link', e.target.value)} className="p-2 border rounded" />
+                <input type="number" placeholder="Qty in Box" value={productInputs[w.id]?.qty_in_box || ''} onChange={(e) => handleProductChange(w.id, 'qty_in_box', e.target.value)} className="p-2 border rounded" />
+                <input type="number" placeholder="Purchase Price" value={productInputs[w.id]?.purchase_price || ''} onChange={(e) => handleProductChange(w.id, 'purchase_price', e.target.value)} className="p-2 border rounded" />
+                <input type="text" placeholder="ASIN" value={productInputs[w.id]?.asin || ''} onChange={(e) => handleProductChange(w.id, 'asin', e.target.value)} className="p-2 border rounded" />
+                <label className="flex items-center space-x-2">
+                  <input type="checkbox" checked={productInputs[w.id]?.vat_included || false} onChange={(e) => handleProductChange(w.id, 'vat_included', e.target.checked)} />
+                  <span className="text-sm">VAT Included</span>
+                </label>
+              </div>
+              <button onClick={() => addProduct(w.id)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mb-4">Add Product</button>
+
+              <ul className="space-y-2">
+                {products[w.id]?.map(p => (
+                  <li key={p.id} className="border p-2 rounded flex justify-between">
+                    <div>
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-sm text-gray-600">ASIN: {p.asin}</div>
+                    </div>
+                    <div className="text-right text-sm">
+                      £{p.purchase_price.toFixed(2)}<br />
+                      {p.vat_included && <span className="text-xs text-green-600">VAT incl.</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
   )
 }
