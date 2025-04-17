@@ -1,4 +1,4 @@
-// updated version with sidebar and inline editing
+// updated version with sidebar and product add/view
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -10,9 +10,21 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface Product {
+  id: string;
+  name: string;
+  product_link: string;
+  qty_in_box: number;
+  purchase_price: number;
+  vat_included: boolean;
+  asin: string;
+  wholesaler_id: string;
+}
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [wholesalers, setWholesalers] = useState<{ id: string; name: string; link: string }[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
   const [editingWholesalerId, setEditingWholesalerId] = useState<string | null>(null)
@@ -20,24 +32,45 @@ export default function Home() {
   const [editingWholesalerLink, setEditingWholesalerLink] = useState('')
   const [activeView, setActiveView] = useState<'add_wholesaler' | 'add_product' | 'view_products'>('add_wholesaler')
 
+  const [productInputs, setProductInputs] = useState({
+    name: '',
+    product_link: '',
+    qty_in_box: '',
+    purchase_price: '',
+    vat_included: false,
+    asin: '',
+    wholesaler_id: ''
+  })
+
   const fetchWholesalers = useCallback(async (uid: string) => {
     const { data } = await supabase.from('wholesalers').select('*').eq('user_id', uid)
     if (data) setWholesalers(data)
   }, [])
 
+  const fetchProducts = useCallback(async (uid: string) => {
+    const { data } = await supabase.from('products').select('*').eq('user_id', uid)
+    if (data) setProducts(data)
+  }, [])
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchWholesalers(session.user.id)
+      if (session?.user) {
+        fetchWholesalers(session.user.id)
+        fetchProducts(session.user.id)
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchWholesalers(session.user.id)
+      if (session?.user) {
+        fetchWholesalers(session.user.id)
+        fetchProducts(session.user.id)
+      }
     })
 
     return () => { subscription.unsubscribe() }
-  }, [fetchWholesalers])
+  }, [fetchWholesalers, fetchProducts])
 
   const addWholesaler = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -47,6 +80,30 @@ export default function Home() {
       setName('')
       setLink('')
       fetchWholesalers(user.id)
+    }
+  }
+
+  const addProduct = async () => {
+    if (!user) return
+    const { name, product_link, qty_in_box, purchase_price, vat_included, asin, wholesaler_id } = productInputs
+    if (!name || !wholesaler_id) return
+    const { error } = await supabase.from('products').insert([
+      {
+        user_id: user.id,
+        name,
+        product_link,
+        qty_in_box: Number(qty_in_box),
+        purchase_price: Number(purchase_price),
+        vat_included,
+        asin,
+        wholesaler_id
+      }
+    ])
+    if (!error) {
+      setProductInputs({
+        name: '', product_link: '', qty_in_box: '', purchase_price: '', vat_included: false, asin: '', wholesaler_id: ''
+      })
+      fetchProducts(user.id)
     }
   }
 
@@ -117,9 +174,60 @@ export default function Home() {
           </div>
         )
       case 'add_product':
-        return <div className="p-6">Add Product view coming soon...</div>
+        return (
+          <div className="p-6 max-w-3xl mx-auto">
+            <h1 className="text-2xl font-bold mb-6">Add Product</h1>
+            <div className="grid gap-4">
+              <select value={productInputs.wholesaler_id} onChange={(e) => setProductInputs(prev => ({ ...prev, wholesaler_id: e.target.value }))} className="border px-2 py-2 rounded">
+                <option value="">Select Wholesaler</option>
+                {wholesalers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+              <input type="text" placeholder="Product Name" value={productInputs.name} onChange={(e) => setProductInputs(prev => ({ ...prev, name: e.target.value }))} className="border px-2 py-1 rounded" />
+              <input type="text" placeholder="Product Link" value={productInputs.product_link} onChange={(e) => setProductInputs(prev => ({ ...prev, product_link: e.target.value }))} className="border px-2 py-1 rounded" />
+              <input type="number" placeholder="Qty in Box" value={productInputs.qty_in_box} onChange={(e) => setProductInputs(prev => ({ ...prev, qty_in_box: e.target.value }))} className="border px-2 py-1 rounded" />
+              <input type="number" placeholder="Purchase Price" value={productInputs.purchase_price} onChange={(e) => setProductInputs(prev => ({ ...prev, purchase_price: e.target.value }))} className="border px-2 py-1 rounded" />
+              <input type="text" placeholder="ASIN" value={productInputs.asin} onChange={(e) => setProductInputs(prev => ({ ...prev, asin: e.target.value }))} className="border px-2 py-1 rounded" />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={productInputs.vat_included} onChange={(e) => setProductInputs(prev => ({ ...prev, vat_included: e.target.checked }))} />
+                VAT Included
+              </label>
+              <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded">Add Product</button>
+            </div>
+          </div>
+        )
       case 'view_products':
-        return <div className="p-6">View Products view coming soon...</div>
+        return (
+          <div className="p-6 max-w-5xl mx-auto">
+            <h1 className="text-2xl font-bold mb-6">All Products</h1>
+            <table className="w-full text-sm border">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="p-2 border">Product</th>
+                  <th className="p-2 border">Wholesaler</th>
+                  <th className="p-2 border">Qty</th>
+                  <th className="p-2 border">Price</th>
+                  <th className="p-2 border">ASIN</th>
+                  <th className="p-2 border">VAT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(p => {
+                  const wholesaler = wholesalers.find(w => w.id === p.wholesaler_id)
+                  return (
+                    <tr key={p.id} className="border-t">
+                      <td className="p-2">{p.name}</td>
+                      <td className="p-2">{wholesaler?.name || '—'}</td>
+                      <td className="p-2">{p.qty_in_box}</td>
+                      <td className="p-2">£{p.purchase_price.toFixed(2)}</td>
+                      <td className="p-2">{p.asin}</td>
+                      <td className="p-2">{p.vat_included ? 'Yes' : 'No'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
     }
   }
 
