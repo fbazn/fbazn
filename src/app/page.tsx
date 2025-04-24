@@ -1,11 +1,10 @@
-// updated version with working product and wholesaler CRUD
+// updated version with working product and wholesaler CRUD using email/password auth
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient, User } from '@supabase/supabase-js'
 import { Trash2, Pencil, LogOut, Eye, PlusCircle, Save } from 'lucide-react'
 import ConnectAmazon from '@/components/ConnectAmazon'
-
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +31,9 @@ interface Wholesaler {
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [authMessage, setAuthMessage] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [wholesalers, setWholesalers] = useState<Wholesaler[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
@@ -84,81 +85,19 @@ export default function Home() {
     return () => { subscription.unsubscribe() }
   }, [fetchWholesalers, fetchProducts])
 
-  const updateProduct = async (id: string) => {
-    const { name, product_link, qty_in_box, purchase_price, vat_included, asin } = editingProduct
-    if (!name) return
-    await supabase.from('products').update({
-      name,
-      product_link,
-      qty_in_box,
-      purchase_price,
-      vat_included,
-      asin
-    }).eq('id', id)
-    setEditingProductId(null)
-    fetchProducts(user!.id)
-  }
-
-  const deleteProduct = async (id: string) => {
-    await supabase.from('products').delete().eq('id', id)
-    fetchProducts(user!.id)
-  }
-
-  const addProduct = async () => {
-    if (!user) return
-    const { name, product_link, qty_in_box, purchase_price, vat_included, asin, wholesaler_id } = productInputs
-    if (!name || !wholesaler_id) return
-    const { error } = await supabase.from('products').insert([
-      {
-        user_id: user.id,
-        name,
-        product_link,
-        qty_in_box: Number(qty_in_box),
-        purchase_price: Number(purchase_price),
-        vat_included,
-        asin,
-        wholesaler_id
-      }
-    ])
-    if (!error) {
-      setProductInputs({
-        name: '', product_link: '', qty_in_box: '', purchase_price: '', vat_included: false, asin: '', wholesaler_id: ''
-      })
-      fetchProducts(user.id)
-    }
-  }
-
-  const addWholesaler = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name || !link || !user) return
-    const { error } = await supabase.from('wholesalers').insert([{ user_id: user.id, name, link }])
-    if (!error) {
-      setName('')
-      setLink('')
-      fetchWholesalers(user.id)
-    }
-  }
-
-  const updateWholesaler = async (id: string) => {
-    const { error } = await supabase.from('wholesalers').update({ name: editingWholesalerName, link: editingWholesalerLink }).eq('id', id)
-    if (!error) {
-      setEditingWholesalerId(null)
-      fetchWholesalers(user!.id)
-    }
-  }
-
-  const deleteWholesaler = async (id: string) => {
-    await supabase.from('wholesalers').delete().eq('id', id)
-    fetchWholesalers(user!.id)
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const { error } = await supabase.auth.signInWithOtp({ email })
-    if (error) {
-      setAuthMessage('Something went wrong. Please try again.')
+    let result
+    if (authMode === 'signup') {
+      result = await supabase.auth.signUp({ email, password })
     } else {
-      setAuthMessage('Check your email for the login link.')
+      result = await supabase.auth.signInWithPassword({ email, password })
+    }
+
+    if (result.error) {
+      setAuthMessage(result.error.message)
+    } else {
+      setAuthMessage('Success!')
     }
   }
 
@@ -166,6 +105,7 @@ export default function Home() {
     await supabase.auth.signOut()
     setUser(null)
   }
+
   const renderView = () => {
     switch (activeView) {
       case 'view_products':
@@ -235,8 +175,8 @@ export default function Home() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white p-6 rounded shadow max-w-sm w-full">
-          <h1 className="text-xl font-bold mb-4">Log in to fbazn</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <h1 className="text-xl font-bold mb-4">{authMode === 'signup' ? 'Create an account' : 'Log in to fbazn'}</h1>
+          <form onSubmit={handleAuth} className="space-y-4">
             <input
               type="email"
               required
@@ -245,14 +185,31 @@ export default function Home() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border px-3 py-2 rounded"
             />
+            <input
+              type="password"
+              required
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
             <button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
             >
-              Send magic link
+              {authMode === 'signup' ? 'Sign Up' : 'Log In'}
             </button>
           </form>
-          {authMessage && <p className="mt-4 text-sm text-gray-600">{authMessage}</p>}
+          <p className="mt-4 text-sm text-gray-600">
+            {authMode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'}{' '}
+            <button
+              onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+              className="text-blue-600 underline"
+            >
+              {authMode === 'login' ? 'Sign up' : 'Log in'}
+            </button>
+          </p>
+          {authMessage && <p className="mt-4 text-sm text-red-500">{authMessage}</p>}
         </div>
       </main>
     )
@@ -261,27 +218,24 @@ export default function Home() {
   return (
     <div className="flex h-screen">
       <aside className="w-64 bg-gray-900 text-white flex flex-col justify-between">
-  <div>
-    <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
-    <nav className="p-4 space-y-2 text-sm">
-      {/* Your other nav buttons */}
-      <button onClick={() => setActiveView('add_wholesaler')} className="...">Add Wholesaler</button>
-      <button onClick={() => setActiveView('add_product')} className="...">Add Product</button>
-      <button onClick={() => setActiveView('view_products')} className="...">View Products</button>
-    </nav>
-  </div>
-
-  <div className="p-4 space-y-2">
-    <ConnectAmazon />
-    <button
-      onClick={handleLogout}
-      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded"
-    >
-      Log Out
-    </button>
-  </div>
-</aside>
-
+        <div>
+          <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
+          <nav className="p-4 space-y-2 text-sm">
+            <button onClick={() => setActiveView('add_wholesaler')} className="...">Add Wholesaler</button>
+            <button onClick={() => setActiveView('add_product')} className="...">Add Product</button>
+            <button onClick={() => setActiveView('view_products')} className="...">View Products</button>
+          </nav>
+        </div>
+        <div className="p-4 space-y-2">
+          <ConnectAmazon />
+          <button
+            onClick={handleLogout}
+            className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded"
+          >
+            Log Out
+          </button>
+        </div>
+      </aside>
       <main className="flex-1 overflow-auto bg-gray-50">
         {renderView()}
       </main>
