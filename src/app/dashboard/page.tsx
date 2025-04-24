@@ -1,26 +1,53 @@
 // src/app/dashboard/page.tsx
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function DashboardPage() {
-  // 1) Create a Supabase server-side client, passing in Next’s cookies
-  const supabase = createServerComponentClient({ cookies })
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '../lib/supabaseClient'
+import type { User } from '@supabase/supabase-js'
 
-  // 2) Fetch the current session
-  const {
-    data: { session }
-  } = await supabase.auth.getSession()
+export default function DashboardPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // 3) If no session, redirect back to the login page
-  if (!session) {
-    redirect('/')
+  useEffect(() => {
+    // 1) Check current session:
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        // no session → back to login
+        router.replace('/')
+      } else {
+        setUser(session.user)
+      }
+      setLoading(false)
+    })
+
+    // 2) Listen for future changes (e.g. they sign out in another tab)
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace('/')
+      } else {
+        setUser(session.user)
+      }
+    })
+
+    return () => {
+      sub.subscription.unsubscribe()
+    }
+  }, [router])
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Loading…</p>
+      </div>
+    )
   }
 
-  // 4) Otherwise, render your protected UI
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold">Welcome, {session.user.email}</h1>
+      <h1 className="text-2xl font-bold">Welcome, {user?.email}</h1>
       <p>This is your protected dashboard.</p>
     </div>
   )
