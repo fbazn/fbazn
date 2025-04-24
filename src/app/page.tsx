@@ -31,6 +31,8 @@ interface Wholesaler {
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
+  const [email, setEmail] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
   const [wholesalers, setWholesalers] = useState<Wholesaler[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
@@ -150,8 +152,20 @@ export default function Home() {
     fetchWholesalers(user!.id)
   }
 
-  const handleLogout = async () => await supabase.auth.signOut()
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { error } = await supabase.auth.signInWithOtp({ email })
+    if (error) {
+      setAuthMessage('Something went wrong. Please try again.')
+    } else {
+      setAuthMessage('Check your email for the login link.')
+    }
+  }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+  }
   const renderView = () => {
     switch (activeView) {
       case 'view_products':
@@ -217,7 +231,32 @@ export default function Home() {
     }
   }
 
-  if (!user) return <main className="min-h-screen flex items-center justify-center text-gray-500">Loading...</main>
+  if (!user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="bg-white p-6 rounded shadow max-w-sm w-full">
+          <h1 className="text-xl font-bold mb-4">Log in to fbazn</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
+            >
+              Send magic link
+            </button>
+          </form>
+          {authMessage && <p className="mt-4 text-sm text-gray-600">{authMessage}</p>}
+        </div>
+      </main>
+    )
+  }
 
   return (
     <div className="flex h-screen">
