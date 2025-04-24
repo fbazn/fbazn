@@ -27,7 +27,7 @@ export default function DashboardPage() {
       if (!session) {
         router.replace('/')
       } else {
-        setUserEmail(session.user.email)
+        setUserEmail(session.user.email ?? null)
       }
       setLoading(false)
     })
@@ -36,7 +36,7 @@ export default function DashboardPage() {
       if (!session) {
         router.replace('/')
       } else {
-        setUserEmail(session.user.email)
+        setUserEmail(session.user.email ?? null)
       }
     })
 
