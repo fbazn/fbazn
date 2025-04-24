@@ -18,6 +18,15 @@ export default function Home() {
     })
   }, [])
 
+  function RedirectToLogin() {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+    return null
+  }
+  if (!user && !loading) {
+    return <RedirectToLogin />
+  }
   if (loading) return <main className="h-screen flex items-center justify-center">Loading...</main>
 
   if (!user) return <main className="h-screen flex items-center justify-center">Not logged in</main>
