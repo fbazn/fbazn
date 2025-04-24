@@ -85,6 +85,26 @@ export default function Home() {
     return () => { subscription.unsubscribe() }
   }, [fetchWholesalers, fetchProducts])
 
+  const updateProduct = async (id: string) => {
+    const { name, product_link, qty_in_box, purchase_price, vat_included, asin } = editingProduct
+    if (!name) return
+    await supabase.from('products').update({
+      name,
+      product_link,
+      qty_in_box,
+      purchase_price,
+      vat_included,
+      asin
+    }).eq('id', id)
+    setEditingProductId(null)
+    fetchProducts(user!.id)
+  }
+
+  const deleteProduct = async (id: string) => {
+    await supabase.from('products').delete().eq('id', id)
+    fetchProducts(user!.id)
+  }
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     let result
