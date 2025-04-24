@@ -1,264 +1,81 @@
-// updated version with working product and wholesaler CRUD using email/password auth
-'use client'
+// pages/index.tsx
+import { useState } from 'react'
+import { supabase } from './lib/supabaseClient'
+import { useRouter } from 'next/router'
 
-import { useEffect, useState, useCallback } from 'react'
-import { createClient, User } from '@supabase/supabase-js'
-import { Trash2, Pencil, LogOut, Eye, PlusCircle, Save } from 'lucide-react'
-import ConnectAmazon from '@/components/ConnectAmazon'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-interface Product {
-  id: string;
-  name: string;
-  product_link: string;
-  qty_in_box: number;
-  purchase_price: number;
-  vat_included: boolean;
-  asin: string;
-  wholesaler_id: string;
-}
-
-interface Wholesaler {
-  id: string;
-  name: string;
-  link: string;
-}
-
-export default function Home() {
-  const [user, setUser] = useState<User | null>(null)
+export default function AuthPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [authMessage, setAuthMessage] = useState('')
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
-  const [wholesalers, setWholesalers] = useState<Wholesaler[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [editingProductId, setEditingProductId] = useState<string | null>(null)
-  const [editingProduct, setEditingProduct] = useState<Partial<Product>>({})
-  const [name, setName] = useState('')
-  const [link, setLink] = useState('')
-  const [editingWholesalerId, setEditingWholesalerId] = useState<string | null>(null)
-  const [editingWholesalerName, setEditingWholesalerName] = useState('')
-  const [editingWholesalerLink, setEditingWholesalerLink] = useState('')
-  const [activeView, setActiveView] = useState<'add_wholesaler' | 'add_product' | 'view_products'>('add_wholesaler')
+  const [mode, setMode]     = useState<'login'|'signup'>('login')
+  const [error, setError]   = useState<string|null>(null)
 
-  const [productInputs, setProductInputs] = useState({
-    name: '',
-    product_link: '',
-    qty_in_box: '',
-    purchase_price: '',
-    vat_included: false,
-    asin: '',
-    wholesaler_id: ''
-  })
-
-  const fetchWholesalers = useCallback(async (uid: string) => {
-    const { data } = await supabase.from('wholesalers').select('*').eq('user_id', uid)
-    if (data) setWholesalers(data)
-  }, [])
-
-  const fetchProducts = useCallback(async (uid: string) => {
-    const { data } = await supabase.from('products').select('*').eq('user_id', uid)
-    if (data) setProducts(data)
-  }, [])
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchWholesalers(session.user.id)
-        fetchProducts(session.user.id)
-      }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchWholesalers(session.user.id)
-        fetchProducts(session.user.id)
-      }
-    })
-
-    return () => { subscription.unsubscribe() }
-  }, [fetchWholesalers, fetchProducts])
-
-  const updateProduct = async (id: string) => {
-    const { name, product_link, qty_in_box, purchase_price, vat_included, asin } = editingProduct
-    if (!name) return
-    await supabase.from('products').update({
-      name,
-      product_link,
-      qty_in_box,
-      purchase_price,
-      vat_included,
-      asin
-    }).eq('id', id)
-    setEditingProductId(null)
-    fetchProducts(user!.id)
-  }
-
-  const deleteProduct = async (id: string) => {
-    await supabase.from('products').delete().eq('id', id)
-    fetchProducts(user!.id)
-  }
-
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    let result
-    if (authMode === 'signup') {
-      result = await supabase.auth.signUp({ email, password })
+    setError(null)
+
+    let res
+    if (mode === 'signup') {
+      res = await supabase.auth.signUp({ email, password })
+      // optional: auto-login by calling signInWithPassword after a successful signUp:
+      if (!res.error) {
+        res = await supabase.auth.signInWithPassword({ email, password })
+      }
     } else {
-      result = await supabase.auth.signInWithPassword({ email, password })
+      res = await supabase.auth.signInWithPassword({ email, password })
     }
 
-    if (result.error) {
-      setAuthMessage(result.error.message)
+    if (res.error) {
+      setError(res.error.message)
     } else {
-      setAuthMessage('Success!')
+      // on success, redirect to /dashboard
+      router.push('/dashboard')
     }
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-  }
-
-  const renderView = () => {
-    switch (activeView) {
-      case 'view_products':
-        return (
-          <div className="p-6 max-w-5xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">All Products</h1>
-            <table className="w-full text-sm border">
-              <thead>
-                <tr className="bg-gray-100 text-left">
-                  <th className="p-2 border">Name</th>
-                  <th className="p-2 border">Qty</th>
-                  <th className="p-2 border">Price</th>
-                  <th className="p-2 border">ASIN</th>
-                  <th className="p-2 border">VAT</th>
-                  <th className="p-2 border">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(p => (
-                  <tr key={p.id} className="border-t">
-                    {editingProductId === p.id ? (
-                      <>
-                        <td className="p-2"><input value={editingProduct.name || ''} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} className="border px-1" /></td>
-                        <td className="p-2"><input type="number" value={editingProduct.qty_in_box || ''} onChange={(e) => setEditingProduct({ ...editingProduct, qty_in_box: Number(e.target.value) })} className="border px-1 w-16" /></td>
-                        <td className="p-2"><input type="number" value={editingProduct.purchase_price || ''} onChange={(e) => setEditingProduct({ ...editingProduct, purchase_price: Number(e.target.value) })} className="border px-1 w-20" /></td>
-                        <td className="p-2"><input value={editingProduct.asin || ''} onChange={(e) => setEditingProduct({ ...editingProduct, asin: e.target.value })} className="border px-1 w-24" /></td>
-                        <td className="p-2">
-                          <input type="checkbox" checked={editingProduct.vat_included || false} onChange={(e) => setEditingProduct({ ...editingProduct, vat_included: e.target.checked })} />
-                        </td>
-                        <td className="p-2 flex gap-2">
-                          <button onClick={() => updateProduct(p.id)} className="text-green-600 hover:text-green-800"><Save className="w-4 h-4" /></button>
-                          <button onClick={() => setEditingProductId(null)} className="text-gray-500">Cancel</button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="p-2">{p.name}</td>
-                        <td className="p-2">{p.qty_in_box}</td>
-                        <td className="p-2">£{p.purchase_price.toFixed(2)}</td>
-                        <td className="p-2">{p.asin}</td>
-                        <td className="p-2">{p.vat_included ? 'Yes' : 'No'}</td>
-                        <td className="p-2 flex gap-2">
-                          <button onClick={() => {
-                            setEditingProductId(p.id)
-                            setEditingProduct(p)
-                          }} className="text-yellow-600 hover:text-yellow-800">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => deleteProduct(p.id)} className="text-red-600 hover:text-red-800">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      default:
-        return null
-    }
-  }
-
-  if (!user) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="bg-white p-6 rounded shadow max-w-sm w-full">
-          <h1 className="text-xl font-bold mb-4">{authMode === 'signup' ? 'Create an account' : 'Log in to fbazn'}</h1>
-          <form onSubmit={handleAuth} className="space-y-4">
-            <input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            />
-            <input
-              type="password"
-              required
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
-            />
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-            >
-              {authMode === 'signup' ? 'Sign Up' : 'Log In'}
-            </button>
-          </form>
-          <p className="mt-4 text-sm text-gray-600">
-            {authMode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'}{' '}
-            <button
-              onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-              className="text-blue-600 underline"
-            >
-              {authMode === 'login' ? 'Sign up' : 'Log in'}
-            </button>
-          </p>
-          {authMessage && <p className="mt-4 text-sm text-red-500">{authMessage}</p>}
-        </div>
-      </main>
-    )
   }
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col justify-between">
-        <div>
-          <div className="text-2xl font-bold p-6 border-b border-gray-800">fbazn</div>
-          <nav className="p-4 space-y-2 text-sm">
-            <button onClick={() => setActiveView('add_wholesaler')} className="...">Add Wholesaler</button>
-            <button onClick={() => setActiveView('add_product')} className="...">Add Product</button>
-            <button onClick={() => setActiveView('view_products')} className="...">View Products</button>
-          </nav>
-        </div>
-        <div className="p-4 space-y-2">
-          <ConnectAmazon />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="bg-white p-6 rounded shadow max-w-sm w-full">
+        <h1 className="text-xl font-bold mb-4">
+          {mode === 'signup' ? 'Create an account' : 'Log in'}
+        </h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            required
+            value={email}
+            onChange={e=>setEmail(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
+          />
           <button
-            onClick={handleLogout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-2 rounded"
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
           >
-            Log Out
+            {mode === 'signup' ? 'Sign Up' : 'Log In'}
           </button>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto bg-gray-50">
-        {renderView()}
-      </main>
+        </form>
+        {error && <p className="mt-4 text-red-500 text-sm">{error}</p>}
+        <p className="mt-4 text-sm text-gray-600">
+          {mode === 'login'
+            ? "Don't have an account?"
+            : 'Already have an account?'}{' '}
+          <button
+            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            className="text-blue-600 underline"
+          >
+            {mode === 'login' ? 'Sign up' : 'Log in'}
+          </button>
+        </p>
+      </div>
     </div>
   )
 }
