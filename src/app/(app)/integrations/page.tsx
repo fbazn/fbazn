@@ -1,0 +1,33 @@
+import { Badge } from "@/components/app/Badge";
+
+export default function IntegrationsPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <h2 className="text-xl font-semibold text-slate-100">Integrations</h2>
+        <Badge label="🔒 Coming soon" variant="muted" />
+      </div>
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+        <p className="text-sm text-slate-400">
+          Connect Amazon, Walmart, and supplier feeds to unlock automated data
+          sync. This area will support secure API connections and webhooks.
+        </p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {[
+            "Amazon Seller Central",
+            "Supplier FTP feeds",
+            "ERP integrations",
+            "Slack alerts",
+          ].map((integration) => (
+            <div
+              key={integration}
+              className="rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-500"
+            >
+              {integration}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
