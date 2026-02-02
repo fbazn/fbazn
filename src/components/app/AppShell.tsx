@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <DetailsDrawerContext.Provider value={contextValue}>
       <div
-        className="min-h-screen bg-slate-950 text-slate-100"
+        className="min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--text))]"
         style={{ "--sidebar-width": sidebarWidth } as CSSProperties}
       >
         <Sidebar

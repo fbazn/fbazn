@@ -64,7 +64,7 @@ export function Sidebar({
       <aside
         onMouseEnter={() => onHoverChange(true)}
         onMouseLeave={() => onHoverChange(false)}
-        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-slate-800 bg-slate-950/95 transition-all duration-200 md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[rgb(var(--border))] bg-[rgb(var(--bg))] transition-all duration-200 md:translate-x-0 ${
           isExpanded ? "w-[260px]" : "w-[72px]"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
@@ -76,7 +76,9 @@ export function Sidebar({
             {isExpanded && (
               <div>
                 <div className="text-sm font-semibold">FBAZN</div>
-                <div className="text-xs text-slate-500">app.fbazn.com</div>
+                <div className="text-xs text-[rgb(var(--muted))]">
+                  app.fbazn.com
+                </div>
               </div>
             )}
           </div>
@@ -84,8 +86,10 @@ export function Sidebar({
             <button
               type="button"
               onClick={onTogglePin}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 text-slate-300 transition ${
-                isPinned ? "bg-slate-800" : "hover:bg-slate-800/70"
+              className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] text-[rgb(var(--muted))] transition ${
+                isPinned
+                  ? "bg-[rgb(var(--card))]"
+                  : "hover:bg-[rgb(var(--card))]"
               }`}
               aria-label="Pin sidebar"
             >
@@ -102,13 +106,15 @@ export function Sidebar({
           </div>
         </div>
 
-        <div className="border-t border-slate-800 px-4 py-4">
+        <div className="border-t border-[rgb(var(--border))] px-4 py-4">
           <div className="flex items-center gap-3">
             <span className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500" />
             {isExpanded && (
               <div>
                 <div className="text-sm font-semibold">Amelia Reyes</div>
-                <div className="text-xs text-slate-500">Ops Manager</div>
+                <div className="text-xs text-[rgb(var(--muted))]">
+                  Ops Manager
+                </div>
               </div>
             )}
           </div>
