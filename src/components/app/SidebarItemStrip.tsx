@@ -10,7 +10,7 @@ export function SidebarItemStrip({ isExpanded }: { isExpanded: boolean }) {
   return (
     <div className="space-y-2">
       {isExpanded && (
-        <p className="px-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="px-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
           Recent
         </p>
       )}
@@ -26,8 +26,10 @@ export function SidebarItemStrip({ isExpanded }: { isExpanded: boolean }) {
               key={item.id}
               label={
                 <div className="space-y-1">
-                  <div className="font-semibold text-slate-100">{item.title}</div>
-                  <div className="text-[11px] text-slate-300">
+                  <div className="font-semibold text-[rgb(var(--text))]">
+                    {item.title}
+                  </div>
+                  <div className="text-[11px] text-[rgb(var(--muted))]">
                     ROI {item.roi}% • Profit ${item.profit.toFixed(2)}
                   </div>
                 </div>
@@ -36,7 +38,7 @@ export function SidebarItemStrip({ isExpanded }: { isExpanded: boolean }) {
               <button
                 type="button"
                 onClick={() => openDrawer(item)}
-                className="relative h-12 w-12 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
+                className="relative h-12 w-12 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-xs font-semibold text-[rgb(var(--text))] transition hover:border-[rgb(var(--border-subtle))]"
               >
                 {item.imageUrl ? (
                   <img

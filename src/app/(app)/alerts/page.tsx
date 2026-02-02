@@ -10,8 +10,8 @@ export default function AlertsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-100">Alerts</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-xl font-semibold text-[rgb(var(--text))]">Alerts</h2>
+        <p className="text-sm text-[rgb(var(--muted))]">
           Stay ahead of pricing shifts and sourcing risks.
         </p>
       </div>
@@ -19,11 +19,15 @@ export default function AlertsPage() {
         {alerts.map((alert) => (
           <div
             key={alert.title}
-            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-5"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
           >
             <div>
-              <h3 className="text-base font-semibold text-slate-100">{alert.title}</h3>
-              <p className="text-sm text-slate-400">{alert.detail}</p>
+              <h3 className="text-base font-semibold text-[rgb(var(--text))]">
+                {alert.title}
+              </h3>
+              <p className="text-sm text-[rgb(var(--muted))]">
+                {alert.detail}
+              </p>
             </div>
             <Badge label="New" variant="warning" />
           </div>

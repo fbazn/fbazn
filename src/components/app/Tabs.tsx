@@ -16,7 +16,7 @@ type TabsProps = {
 export function Tabs({ tabs, activeTab, onChange, children }: TabsProps) {
   return (
     <div>
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-[rgb(var(--border))] pb-2">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
@@ -26,10 +26,10 @@ export function Tabs({ tabs, activeTab, onChange, children }: TabsProps) {
               onClick={() => !tab.disabled && onChange(tab.id)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition ${
                 tab.disabled
-                  ? "cursor-not-allowed text-slate-500"
+                  ? "cursor-not-allowed text-[rgb(var(--muted))]"
                   : isActive
-                  ? "bg-slate-200 text-slate-900"
-                  : "text-slate-300 hover:bg-slate-800"
+                  ? "bg-[rgb(var(--bg-elevated))] text-[rgb(var(--text))]"
+                  : "text-[rgb(var(--muted))] hover:bg-[rgb(var(--card))]"
               }`}
             >
               {tab.label}
