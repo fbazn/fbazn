@@ -2,6 +2,7 @@
 
 import {
   LayoutDashboard,
+  ClipboardList,
   List,
   Search,
   Tag,
@@ -26,6 +27,7 @@ type SidebarProps = {
 
 const primaryItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Review Queue", href: "/review-queue", icon: ClipboardList },
   { label: "Sourcing List", href: "/sourcing", icon: List },
   { label: "ASIN Lookup", href: "/asin", icon: Search },
   { label: "Deals", href: "/deals", icon: Tag },
