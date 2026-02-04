@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarItemStrip } from "./SidebarItemStrip";
+import { useReviewQueue } from "./ReviewQueueContext";
 
 type SidebarProps = {
   isExpanded: boolean;
@@ -24,15 +25,6 @@ type SidebarProps = {
   onCloseMobile: () => void;
   onHoverChange: (value: boolean) => void;
 };
-
-const primaryItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "Review Queue", href: "/review-queue", icon: ClipboardList },
-  { label: "Sourcing List", href: "/sourcing", icon: List },
-  { label: "ASIN Lookup", href: "/asin", icon: Search },
-  { label: "Deals", href: "/deals", icon: Tag },
-  { label: "Alerts", href: "/alerts", icon: Bell },
-];
 
 const secondaryItems = [
   {
@@ -55,6 +47,22 @@ export function Sidebar({
   onCloseMobile,
   onHoverChange,
 }: SidebarProps) {
+  const { reviewQueueCount } = useReviewQueue();
+
+  const primaryItems = [
+    { label: "Dashboard", href: "/", icon: LayoutDashboard },
+    {
+      label: "Review Queue",
+      href: "/review-queue",
+      icon: ClipboardList,
+      badge: reviewQueueCount > 0 ? `${reviewQueueCount}` : undefined,
+    },
+    { label: "Sourcing List", href: "/sourcing", icon: List },
+    { label: "ASIN Lookup", href: "/asin", icon: Search },
+    { label: "Deals", href: "/deals", icon: Tag },
+    { label: "Alerts", href: "/alerts", icon: Bell },
+  ];
+
   return (
     <>
       <div

@@ -13,6 +13,25 @@ export type MockItem = {
   imageUrl?: string;
 };
 
+export type ReviewQueueItem = {
+  id: string;
+  type: "review";
+  asin: string;
+  title: string;
+  marketplace: string;
+  buyBoxPrice: number;
+  estProfit: number;
+  roiPct: number;
+  savedAt: string;
+  status: "pending_review";
+  supplierName: string;
+  supplierUrl: string;
+  supplierCost: number;
+  tags: string;
+  notes: string;
+  imageUrl?: string;
+};
+
 export const mockRecentItems: MockItem[] = [
   {
     id: "itm-001",
@@ -240,5 +259,99 @@ export const mockSourcingRows: MockItem[] = [
     roi: 181,
     rank: "#3,295 Wellness",
     status: "Saved",
+  },
+];
+
+export const mockReviewQueueItems: ReviewQueueItem[] = [
+  {
+    id: "rq-001",
+    type: "review",
+    asin: "B0C9JQ4L5Z",
+    title: "Ergonomic Mesh Office Chair",
+    marketplace: "UK",
+    buyBoxPrice: 129.99,
+    estProfit: 28.4,
+    roiPct: 21,
+    savedAt: "2024-05-21 09:24",
+    status: "pending_review",
+    supplierName: "Mason Office Supply",
+    supplierUrl: "https://supplier.example.com/mesh-chair",
+    supplierCost: 76.5,
+    tags: "office, seating, premium",
+    notes: "Check packaging requirements for UK inbound shipment.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "rq-002",
+    type: "review",
+    asin: "B08Q6K2M9D",
+    title: "Stainless Steel Air Fryer 5L",
+    marketplace: "US",
+    buyBoxPrice: 89.5,
+    estProfit: 18.75,
+    roiPct: 26,
+    savedAt: "2024-05-21 10:15",
+    status: "pending_review",
+    supplierName: "Kitchen Direct",
+    supplierUrl: "https://supplier.example.com/air-fryer-5l",
+    supplierCost: 52.25,
+    tags: "kitchen, appliances",
+    notes: "Confirm warranty terms before ordering.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1514517220017-8ce97a34a7b6?auto=format&fit=crop&w=200&q=80",
+  },
+  {
+    id: "rq-003",
+    type: "review",
+    asin: "B0B7Y9W4H2",
+    title: "Rechargeable LED Desk Lamp",
+    marketplace: "DE",
+    buyBoxPrice: 44.0,
+    estProfit: 11.2,
+    roiPct: 31,
+    savedAt: "2024-05-20 16:48",
+    status: "pending_review",
+    supplierName: "Lumen Trade",
+    supplierUrl: "https://supplier.example.com/led-desk-lamp",
+    supplierCost: 22.8,
+    tags: "lighting, office",
+    notes: "Request updated compliance docs for EU listing.",
+  },
+  {
+    id: "rq-004",
+    type: "review",
+    asin: "B09ZV3N7R1",
+    title: "Smart Wi-Fi Plug (4-Pack)",
+    marketplace: "UK",
+    buyBoxPrice: 24.99,
+    estProfit: 6.1,
+    roiPct: 19,
+    savedAt: "2024-05-20 12:02",
+    status: "pending_review",
+    supplierName: "Smart Home Wholesale",
+    supplierUrl: "https://supplier.example.com/wifi-plug-4pack",
+    supplierCost: 13.4,
+    tags: "smart home, bundle",
+    notes: "Bundle pricing looks tight; validate shipping costs.",
+  },
+  {
+    id: "rq-005",
+    type: "review",
+    asin: "B0C2J5L8P8",
+    title: "Portable 12L Mini Fridge",
+    marketplace: "US",
+    buyBoxPrice: 74.0,
+    estProfit: 15.45,
+    roiPct: 23,
+    savedAt: "2024-05-19 18:37",
+    status: "pending_review",
+    supplierName: "Chill Logistics",
+    supplierUrl: "https://supplier.example.com/12l-mini-fridge",
+    supplierCost: 41.9,
+    tags: "appliances, travel",
+    notes: "Potential to add travel bundle for summer promo.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=200&q=80",
   },
 ];

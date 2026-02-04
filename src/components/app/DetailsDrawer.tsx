@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Tabs } from "./Tabs";
 import { Badge } from "./Badge";
 import { useDetailsDrawer } from "./AppShell";
+import { ReviewQueueItem } from "@/lib/mockData";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -14,8 +15,27 @@ const tabs = [
 ];
 
 export function DetailsDrawer() {
-  const { isOpen, selectedItem, closeDrawer } = useDetailsDrawer();
+  const { isOpen, selectedItem, closeDrawer, drawerActions } =
+    useDetailsDrawer();
   const [activeTab, setActiveTab] = useState("overview");
+  const [supplierName, setSupplierName] = useState("");
+  const [supplierUrl, setSupplierUrl] = useState("");
+  const [supplierCost, setSupplierCost] = useState("");
+  const [tags, setTags] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const isReviewQueueItem = (item: unknown): item is ReviewQueueItem =>
+    Boolean(item && typeof item === "object" && (item as ReviewQueueItem).type);
+
+  useEffect(() => {
+    if (selectedItem && isReviewQueueItem(selectedItem)) {
+      setSupplierName(selectedItem.supplierName);
+      setSupplierUrl(selectedItem.supplierUrl);
+      setSupplierCost(selectedItem.supplierCost.toString());
+      setTags(selectedItem.tags);
+      setNotes(selectedItem.notes);
+    }
+  }, [selectedItem]);
 
   if (!selectedItem) {
     return null;
@@ -48,118 +68,276 @@ export function DetailsDrawer() {
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 overflow-hidden rounded-2xl bg-[rgb(var(--bg-elevated))]">
-              {selectedItem.imageUrl ? (
-                <img
-                  src={selectedItem.imageUrl}
-                  alt={selectedItem.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-[rgb(var(--muted))]">
-                  {selectedItem.title
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((word) => word[0])
-                    .join("")}
+          {isReviewQueueItem(selectedItem) ? (
+            <>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 overflow-hidden rounded-2xl bg-[rgb(var(--bg-elevated))]">
+                  {selectedItem.imageUrl ? (
+                    <img
+                      src={selectedItem.imageUrl}
+                      alt={selectedItem.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-[rgb(var(--muted))]">
+                      {selectedItem.title
+                        .split(" ")
+                        .slice(0, 2)
+                        .map((word) => word[0])
+                        .join("")}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="space-y-2 text-sm text-[rgb(var(--muted))]">
-              <div>Supplier: {selectedItem.supplier}</div>
-              <div>Rank: {selectedItem.rank}</div>
-              <div>Status: {selectedItem.status}</div>
-            </div>
-          </div>
+                <div className="space-y-2 text-sm text-[rgb(var(--muted))]">
+                  <div>Supplier: {selectedItem.supplierName}</div>
+                  <div>Marketplace: {selectedItem.marketplace}</div>
+                  <div>Status: Pending review</div>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
-            <div>
-              <div className="text-xs text-[rgb(var(--muted))]">Buy Box</div>
-              <div className="text-base font-semibold text-[rgb(var(--text))]">
-                ${selectedItem.buyBox.toFixed(2)}
+              <div className="grid grid-cols-2 gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">ASIN</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.asin}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">Title</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.title}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">
+                    Marketplace
+                  </div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.marketplace}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">Saved at</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.savedAt}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">
+                    Buy Box Price
+                  </div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    ${selectedItem.buyBoxPrice.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">
+                    Est. Profit
+                  </div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    ${selectedItem.estProfit.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">ROI</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.roiPct}%
+                  </div>
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-xs text-[rgb(var(--muted))]">Profit</div>
-              <div className="text-base font-semibold text-[rgb(var(--text))]">
-                ${selectedItem.profit.toFixed(2)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-[rgb(var(--muted))]">ROI</div>
-              <div className="text-base font-semibold text-[rgb(var(--text))]">
-                {selectedItem.roi}%
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-[rgb(var(--muted))]">Fees</div>
-              <div className="text-base font-semibold text-[rgb(var(--text))]">
-                ${selectedItem.fees.toFixed(2)}
-              </div>
-            </div>
-          </div>
 
-          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab}>
-            {activeTab === "overview" && (
-              <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
-                <p>
-                  Placeholder overview with highlights on margin, inventory notes, and
-                  recent price activity.
-                </p>
-                <ul className="space-y-2">
-                  <li>• Buy box stability: 14-day average</li>
-                  <li>• Estimated monthly volume: 320 units</li>
-                  <li>• Competitors: 5 active sellers</li>
-                </ul>
-              </div>
-            )}
-            {activeTab === "fees" && (
-              <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
-                <p>Breakdown of estimated FBA fees and ROI drivers.</p>
+              <div className="space-y-4 text-sm">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>Referral fee</span>
-                    <span>${(selectedItem.fees * 0.45).toFixed(2)}</span>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    Supplier name
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    value={supplierName}
+                    onChange={(event) => setSupplierName(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    Supplier link
+                  </label>
+                  <input
+                    type="url"
+                    className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    value={supplierUrl}
+                    onChange={(event) => setSupplierUrl(event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      Supplier cost
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                      value={supplierCost}
+                      onChange={(event) => setSupplierCost(event.target.value)}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Fulfillment fee</span>
-                    <span>${(selectedItem.fees * 0.55).toFixed(2)}</span>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                      Tags
+                    </label>
+                    <input
+                      className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                      value={tags}
+                      onChange={(event) => setTags(event.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
+                    Notes
+                  </label>
+                  <textarea
+                    className="min-h-[120px] w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 overflow-hidden rounded-2xl bg-[rgb(var(--bg-elevated))]">
+                  {selectedItem.imageUrl ? (
+                    <img
+                      src={selectedItem.imageUrl}
+                      alt={selectedItem.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-[rgb(var(--muted))]">
+                      {selectedItem.title
+                        .split(" ")
+                        .slice(0, 2)
+                        .map((word) => word[0])
+                        .join("")}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 text-sm text-[rgb(var(--muted))]">
+                  <div>Supplier: {selectedItem.supplier}</div>
+                  <div>Rank: {selectedItem.rank}</div>
+                  <div>Status: {selectedItem.status}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 text-sm">
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">Buy Box</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    ${selectedItem.buyBox.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">Profit</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    ${selectedItem.profit.toFixed(2)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">ROI</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    {selectedItem.roi}%
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-[rgb(var(--muted))]">Fees</div>
+                  <div className="text-base font-semibold text-[rgb(var(--text))]">
+                    ${selectedItem.fees.toFixed(2)}
                   </div>
                 </div>
               </div>
-            )}
-            {activeTab === "notes" && (
-              <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
-                <p>Notes area for team comments and sourcing decisions.</p>
-                <div className="rounded-xl border border-dashed border-[rgb(var(--border-subtle))] p-4 text-[rgb(var(--muted))]">
-                  Add internal notes, supplier caveats, or reorder reminders.
-                </div>
-              </div>
-            )}
-            {activeTab === "history" && (
-              <div className="text-sm text-[rgb(var(--muted))]">
-                Upgrade to unlock history.
-              </div>
-            )}
-          </Tabs>
+
+              <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab}>
+                {activeTab === "overview" && (
+                  <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
+                    <p>
+                      Placeholder overview with highlights on margin, inventory notes,
+                      and recent price activity.
+                    </p>
+                    <ul className="space-y-2">
+                      <li>• Buy box stability: 14-day average</li>
+                      <li>• Estimated monthly volume: 320 units</li>
+                      <li>• Competitors: 5 active sellers</li>
+                    </ul>
+                  </div>
+                )}
+                {activeTab === "fees" && (
+                  <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
+                    <p>Breakdown of estimated FBA fees and ROI drivers.</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span>Referral fee</span>
+                        <span>${(selectedItem.fees * 0.45).toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Fulfillment fee</span>
+                        <span>${(selectedItem.fees * 0.55).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {activeTab === "notes" && (
+                  <div className="space-y-3 text-sm text-[rgb(var(--muted))]">
+                    <p>Notes area for team comments and sourcing decisions.</p>
+                    <div className="rounded-xl border border-dashed border-[rgb(var(--border-subtle))] p-4 text-[rgb(var(--muted))]">
+                      Add internal notes, supplier caveats, or reorder reminders.
+                    </div>
+                  </div>
+                )}
+                {activeTab === "history" && (
+                  <div className="text-sm text-[rgb(var(--muted))]">
+                    Upgrade to unlock history.
+                  </div>
+                )}
+              </Tabs>
+            </>
+          )}
         </div>
 
         <div className="border-t border-[rgb(var(--border))] px-6 py-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
-              Tag
-            </button>
-            <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
-              Archive
-            </button>
-            <a
-              href="#"
-              className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white"
-            >
-              Open on Amazon
-            </a>
-          </div>
+          {isReviewQueueItem(selectedItem) ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => drawerActions?.onReject?.(selectedItem)}
+                className="rounded-full border border-rose-500/40 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => drawerActions?.onSave?.(selectedItem)}
+                className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Save to Pipeline
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
+                Tag
+              </button>
+              <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
+                Archive
+              </button>
+              <a
+                href="#"
+                className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Open on Amazon
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
