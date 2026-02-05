@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export default async function ProtectedLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) {
