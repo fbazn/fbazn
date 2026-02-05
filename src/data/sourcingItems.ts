@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SourcingItemRow = {
   id: string;
-  asin: string | null;
-  title: string | null;
-  marketplace: string | null;
+  user_id: string;
+  asin: string;
+  title: string;
+  marketplace: string;
   supplier_name: string | null;
   supplier_url: string | null;
   supplier_cost: number | null;
@@ -18,11 +19,12 @@ export type SourcingItemRow = {
   image_url: string | null;
   status: "review" | "saved" | "rejected" | "in_progress";
   created_at: string;
-  updated_at: string | null;
+  updated_at: string;
 };
 
 const baseSelect = [
   "id",
+  "user_id",
   "asin",
   "title",
   "marketplace",
@@ -48,11 +50,12 @@ export async function getReviewQueueRows(): Promise<SourcingItemRow[]> {
     .from("sourcing_items")
     .select(baseSelect)
     .eq("status", "review")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .returns<SourcingItemRow[]>();
 
   if (error) {
     console.error("Failed to load review queue rows", error);
-    return [];
+    throw error;
   }
 
   return data ?? [];
@@ -63,11 +66,12 @@ export async function getReviewQueueCount(): Promise<number> {
   const { count, error } = await supabase
     .from("sourcing_items")
     .select("id", { count: "exact", head: true })
-    .eq("status", "review");
+    .eq("status", "review")
+    .returns<SourcingItemRow[]>();
 
   if (error) {
     console.error("Failed to load review queue count", error);
-    return 0;
+    throw error;
   }
 
   return count ?? 0;
@@ -78,11 +82,12 @@ export async function getSourcingRows(): Promise<SourcingItemRow[]> {
   const { data, error } = await supabase
     .from("sourcing_items")
     .select(baseSelect)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .returns<SourcingItemRow[]>();
 
   if (error) {
     console.error("Failed to load sourcing rows", error);
-    return [];
+    throw error;
   }
 
   return data ?? [];
@@ -94,11 +99,12 @@ export async function getRecentRows(limit = 8): Promise<SourcingItemRow[]> {
     .from("sourcing_items")
     .select(baseSelect)
     .order("updated_at", { ascending: false })
-    .limit(limit);
+    .limit(limit)
+    .returns<SourcingItemRow[]>();
 
   if (error) {
     console.error("Failed to load recent rows", error);
-    return [];
+    throw error;
   }
 
   return data ?? [];
