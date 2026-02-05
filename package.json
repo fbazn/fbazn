@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
-    "@supabase/ssr": "^0.5.0",
+    "@supabase/ssr": "file:vendor/supabase-ssr",
     "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.8.4",
     "lucide-react": "^0.488.0",

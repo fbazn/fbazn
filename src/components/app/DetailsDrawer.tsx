@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { Tabs } from "./Tabs";
 import { Badge } from "./Badge";
 import { useDetailsDrawer } from "./AppShell";
 import { ReviewQueueItem } from "@/lib/mockData";
+import { updateSourcingItem } from "@/app/actions/sourcingItems";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -15,7 +16,7 @@ const tabs = [
 ];
 
 export function DetailsDrawer() {
-  const { isOpen, selectedItem, closeDrawer, drawerActions } =
+  const { isOpen, selectedItem, closeDrawer, drawerActions, updateSelectedItem } =
     useDetailsDrawer();
   const [activeTab, setActiveTab] = useState("overview");
   const [supplierName, setSupplierName] = useState("");
@@ -23,9 +24,24 @@ export function DetailsDrawer() {
   const [supplierCost, setSupplierCost] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
+  const [, startTransition] = useTransition();
 
   const isReviewQueueItem = (item: unknown): item is ReviewQueueItem =>
     Boolean(item && typeof item === "object" && (item as ReviewQueueItem).type);
+
+  const parsedSupplierCost = useMemo(() => {
+    const parsed = Number.parseFloat(supplierCost);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }, [supplierCost]);
+
+  const hasReviewEdits =
+    selectedItem &&
+    isReviewQueueItem(selectedItem) &&
+    (supplierName !== selectedItem.supplierName ||
+      supplierUrl !== selectedItem.supplierUrl ||
+      parsedSupplierCost !== selectedItem.supplierCost ||
+      tags !== selectedItem.tags ||
+      notes !== selectedItem.notes);
 
   useEffect(() => {
     if (selectedItem && isReviewQueueItem(selectedItem)) {
@@ -36,6 +52,45 @@ export function DetailsDrawer() {
       setNotes(selectedItem.notes);
     }
   }, [selectedItem]);
+
+  useEffect(() => {
+    if (!selectedItem || !isReviewQueueItem(selectedItem) || !hasReviewEdits) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const nextItem = {
+        ...selectedItem,
+        supplierName,
+        supplierUrl,
+        supplierCost: parsedSupplierCost,
+        tags,
+        notes,
+      };
+      updateSelectedItem(nextItem);
+      startTransition(() => {
+        void updateSourcingItem(selectedItem.id, {
+          supplier_name: supplierName,
+          supplier_url: supplierUrl,
+          supplier_cost: parsedSupplierCost,
+          tags,
+          notes,
+        });
+      });
+    }, 600);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    selectedItem,
+    supplierName,
+    supplierUrl,
+    parsedSupplierCost,
+    tags,
+    notes,
+    hasReviewEdits,
+    updateSelectedItem,
+    startTransition,
+  ]);
 
   if (!selectedItem) {
     return null;

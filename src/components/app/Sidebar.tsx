@@ -16,6 +16,7 @@ import {
 import { SidebarNav } from "./SidebarNav";
 import { SidebarItemStrip } from "./SidebarItemStrip";
 import { useReviewQueue } from "./ReviewQueueContext";
+import type { MockItem } from "@/lib/mockData";
 
 type SidebarProps = {
   isExpanded: boolean;
@@ -24,6 +25,7 @@ type SidebarProps = {
   onTogglePin: () => void;
   onCloseMobile: () => void;
   onHoverChange: (value: boolean) => void;
+  recentItems: MockItem[];
 };
 
 const secondaryItems = [
@@ -46,6 +48,7 @@ export function Sidebar({
   onTogglePin,
   onCloseMobile,
   onHoverChange,
+  recentItems,
 }: SidebarProps) {
   const { reviewQueueCount } = useReviewQueue();
 
@@ -110,7 +113,7 @@ export function Sidebar({
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
           <SidebarNav items={primaryItems} isExpanded={isExpanded} />
-          <SidebarItemStrip isExpanded={isExpanded} />
+          <SidebarItemStrip isExpanded={isExpanded} items={recentItems} />
           <div className="mt-auto flex flex-col gap-4">
             <SidebarNav items={secondaryItems} isExpanded={isExpanded} />
           </div>

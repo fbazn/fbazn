@@ -21,6 +21,7 @@ type DetailsDrawerContextValue = {
   openDrawer: (item: DrawerItem, actions?: ReviewQueueDrawerActions) => void;
   closeDrawer: () => void;
   drawerActions?: ReviewQueueDrawerActions | null;
+  updateSelectedItem: (item: DrawerItem) => void;
 };
 
 const DetailsDrawerContext = createContext<DetailsDrawerContextValue | undefined>(
@@ -35,7 +36,17 @@ export function useDetailsDrawer() {
   return context;
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+type AppShellProps = {
+  children: ReactNode;
+  recentItems: MockItem[];
+  initialReviewQueueCount: number;
+};
+
+export function AppShell({
+  children,
+  recentItems,
+  initialReviewQueueCount,
+}: AppShellProps) {
   const [isPinned, setIsPinned] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -63,10 +74,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     openDrawer,
     closeDrawer,
     drawerActions,
+    updateSelectedItem: (item) => setSelectedItem(item),
   };
 
   return (
-    <ReviewQueueProvider>
+    <ReviewQueueProvider initialCount={initialReviewQueueCount}>
       <DetailsDrawerContext.Provider value={contextValue}>
         <div
           className="min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--text))]"
@@ -79,6 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onTogglePin={() => setIsPinned((value) => !value)}
             onCloseMobile={() => setIsMobileOpen(false)}
             onHoverChange={(value) => setIsHovering(value)}
+            recentItems={recentItems}
           />
 
           <TopBar onOpenMobileMenu={() => setIsMobileOpen(true)} />
