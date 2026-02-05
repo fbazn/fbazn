@@ -1,7 +1,10 @@
-import { mockRecentItems } from "@/lib/mockData";
 import { Badge } from "@/components/app/Badge";
+import { getRecentRows } from "@/data/sourcingItems";
+import { toMockItem } from "@/data/adapters";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const recentItems = (await getRecentRows(4)).map(toMockItem);
+
   return (
     <div className="space-y-8">
       <section className="grid gap-4 md:grid-cols-3">
@@ -55,7 +58,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
           <h2 className="text-lg font-semibold">Recent saves</h2>
           <div className="mt-5 space-y-4">
-            {mockRecentItems.slice(0, 4).map((item) => (
+            {recentItems.map((item) => (
               <div key={item.id} className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl bg-[rgb(var(--bg-elevated))]">
                   {item.imageUrl ? (

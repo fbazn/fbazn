@@ -1,10 +1,15 @@
 "use client";
 
-import { mockRecentItems } from "@/lib/mockData";
+import type { MockItem } from "@/lib/mockData";
 import { Tooltip } from "./Tooltip";
 import { useDetailsDrawer } from "./AppShell";
 
-export function SidebarItemStrip({ isExpanded }: { isExpanded: boolean }) {
+type SidebarItemStripProps = {
+  isExpanded: boolean;
+  items: MockItem[];
+};
+
+export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
   const { openDrawer } = useDetailsDrawer();
 
   return (
@@ -15,7 +20,7 @@ export function SidebarItemStrip({ isExpanded }: { isExpanded: boolean }) {
         </p>
       )}
       <div className={`grid gap-2 ${isExpanded ? "grid-cols-3" : "grid-cols-1"}`}>
-        {mockRecentItems.slice(0, 9).map((item) => {
+        {items.slice(0, 9).map((item) => {
           const initials = item.title
             .split(" ")
             .slice(0, 2)

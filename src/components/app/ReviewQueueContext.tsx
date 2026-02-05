@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { mockReviewQueueItems } from "@/lib/mockData";
-
 type ReviewQueueContextValue = {
   reviewQueueCount: number;
   setReviewQueueCount: (count: number) => void;
@@ -13,9 +11,15 @@ const ReviewQueueContext = createContext<ReviewQueueContextValue | undefined>(
   undefined
 );
 
-export function ReviewQueueProvider({ children }: { children: ReactNode }) {
+export function ReviewQueueProvider({
+  children,
+  initialCount,
+}: {
+  children: ReactNode;
+  initialCount: number;
+}) {
   const [reviewQueueCount, setReviewQueueCount] = useState(
-    mockReviewQueueItems.length
+    initialCount
   );
 
   const value = useMemo(
