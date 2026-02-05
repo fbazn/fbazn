@@ -1,10 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Bell,
   ChevronDown,
   Laptop,
+  LogOut,
   Menu,
   Moon,
   Plus,
@@ -13,6 +15,7 @@ import {
 } from "lucide-react";
 import { Tooltip } from "./Tooltip";
 import { useTheme } from "./ThemeProvider";
+import { createClient } from "@/lib/supabase/client";
 
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -34,6 +37,8 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
   const pathname = usePathname();
   const title = routeTitles[pathname] ?? "Dashboard";
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const themeLabel =
     theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System";
@@ -41,6 +46,15 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
 
   const cycleTheme = () => {
     setTheme(theme === "light" ? "dark" : theme === "dark" ? "system" : "light");
+  };
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+    setIsSigningOut(false);
   };
 
   return (
@@ -72,6 +86,15 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
           <Plus className="h-4 w-4" />
           Add
         </button>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className="hidden items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 py-2 text-sm text-[rgb(var(--text))] transition hover:bg-[rgb(var(--card))] disabled:cursor-not-allowed disabled:opacity-70 md:flex"
+        >
+          <LogOut className="h-4 w-4" />
+          {isSigningOut ? "Signing out" : "Log out"}
+        </button>
         <Tooltip label={`Theme: ${themeLabel}`}>
           <button
             type="button"
@@ -84,6 +107,15 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
         </Tooltip>
         <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-[rgb(var(--text))]">
           <Bell className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-[rgb(var(--text))] transition hover:bg-[rgb(var(--card))] disabled:cursor-not-allowed disabled:opacity-70 md:hidden"
+          aria-label="Log out"
+        >
+          <LogOut className="h-4 w-4" />
         </button>
         <button className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-2 py-1.5 text-sm">
           <span className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500" />
