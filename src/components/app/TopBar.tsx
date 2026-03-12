@@ -16,9 +16,11 @@ import {
 import { Tooltip } from "./Tooltip";
 import { useTheme } from "./ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
+import type { AppUser } from "./AppShell";
 
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
+  "/review-queue": "Review Queue",
   "/sourcing": "Sourcing List",
   "/asin": "ASIN Lookup",
   "/deals": "Deals",
@@ -29,11 +31,19 @@ const routeTitles: Record<string, string> = {
   "/help": "Help",
 };
 
+function userInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
 type TopBarProps = {
   onOpenMobileMenu: () => void;
+  onOpenAddLead: () => void;
+  user: AppUser | null;
 };
 
-export function TopBar({ onOpenMobileMenu }: TopBarProps) {
+export function TopBar({ onOpenMobileMenu, onOpenAddLead, user }: TopBarProps) {
   const pathname = usePathname();
   const title = routeTitles[pathname] ?? "Dashboard";
   const { theme, setTheme } = useTheme();
@@ -56,6 +66,8 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
     router.refresh();
     setIsSigningOut(false);
   };
+
+  const displayName = user?.name ?? "User";
 
   return (
     <header className="glass-panel fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-4 px-4 md:left-[var(--sidebar-width)] md:right-0 md:px-8">
@@ -82,7 +94,11 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <button className="hidden items-center gap-2 rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 md:flex">
+        <button
+          type="button"
+          onClick={onOpenAddLead}
+          className="hidden items-center gap-2 rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 md:flex"
+        >
           <Plus className="h-4 w-4" />
           Add
         </button>
@@ -118,9 +134,11 @@ export function TopBar({ onOpenMobileMenu }: TopBarProps) {
           <LogOut className="h-4 w-4" />
         </button>
         <button className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-2 py-1.5 text-sm">
-          <span className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-xs font-semibold text-white">
+            {userInitials(displayName)}
+          </div>
           <span className="hidden text-[rgb(var(--text))] md:inline">
-            Amelia
+            {displayName}
           </span>
           <ChevronDown className="h-4 w-4 text-[rgb(var(--muted))]" />
         </button>

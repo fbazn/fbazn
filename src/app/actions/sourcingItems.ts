@@ -3,6 +3,45 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+type NewSourcingItem = {
+  asin: string;
+  title: string;
+  marketplace: string;
+  supplier_name?: string;
+  supplier_url?: string;
+  supplier_cost?: number;
+  buy_box_price?: number;
+  fees?: number;
+  est_profit?: number;
+  roi_pct?: number;
+  rank_text?: string;
+  tags?: string;
+  notes?: string;
+  image_url?: string;
+};
+
+export async function createSourcingItem(item: NewSourcingItem) {
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase.from("sourcing_items").insert({
+    ...item,
+    user_id: authData.user.id,
+    status: "review",
+  });
+
+  if (error) {
+    console.error("Failed to create sourcing item", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/review-queue");
+  revalidatePath("/sourcing");
+  return { error: null };
+}
+
 type SourcingItemUpdate = {
   supplier_name?: string;
   supplier_url?: string;

@@ -6,7 +6,7 @@ import { Tabs } from "./Tabs";
 import { Badge } from "./Badge";
 import { useDetailsDrawer } from "./AppShell";
 import { ReviewQueueItem } from "@/lib/mockData";
-import { updateSourcingItem } from "@/app/actions/sourcingItems";
+import { updateSourcingItem, setSourcingStatus } from "@/app/actions/sourcingItems";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -379,15 +379,21 @@ export function DetailsDrawer() {
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
-              <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
-                Tag
-              </button>
-              <button className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => { void setSourcingStatus(selectedItem.id, 'rejected'); });
+                  closeDrawer();
+                }}
+                className="rounded-full border border-rose-500/40 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
+              >
                 Archive
               </button>
               <a
-                href="#"
-                className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white"
+                href={`https://www.amazon.co.uk/dp/${selectedItem.asin}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
               >
                 Open on Amazon
               </a>

@@ -17,6 +17,7 @@ import { SidebarNav } from "./SidebarNav";
 import { SidebarItemStrip } from "./SidebarItemStrip";
 import { useReviewQueue } from "./ReviewQueueContext";
 import type { MockItem } from "@/lib/mockData";
+import type { AppUser } from "./AppShell";
 
 type SidebarProps = {
   isExpanded: boolean;
@@ -26,6 +27,7 @@ type SidebarProps = {
   onCloseMobile: () => void;
   onHoverChange: (value: boolean) => void;
   recentItems: MockItem[];
+  user: AppUser | null;
 };
 
 const secondaryItems = [
@@ -41,6 +43,12 @@ const secondaryItems = [
   { label: "Help", href: "/help", icon: HelpCircle },
 ];
 
+function userInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
 export function Sidebar({
   isExpanded,
   isPinned,
@@ -49,6 +57,7 @@ export function Sidebar({
   onCloseMobile,
   onHoverChange,
   recentItems,
+  user,
 }: SidebarProps) {
   const { reviewQueueCount } = useReviewQueue();
 
@@ -65,6 +74,9 @@ export function Sidebar({
     { label: "Deals", href: "/deals", icon: Tag },
     { label: "Alerts", href: "/alerts", icon: Bell },
   ];
+
+  const displayName = user?.name ?? "User";
+  const displayEmail = user?.email ?? "";
 
   return (
     <>
@@ -83,7 +95,7 @@ export function Sidebar({
       >
         <div className="flex items-center justify-between px-4 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-sm font-bold">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-sm font-bold text-white">
               FZ
             </div>
             {isExpanded && (
@@ -121,12 +133,16 @@ export function Sidebar({
 
         <div className="border-t border-[rgb(var(--border))] px-4 py-4">
           <div className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500" />
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-xs font-semibold text-white">
+              {userInitials(displayName)}
+            </div>
             {isExpanded && (
-              <div>
-                <div className="text-sm font-semibold">Amelia Reyes</div>
-                <div className="text-xs text-[rgb(var(--muted))]">
-                  Ops Manager
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">
+                  {displayName}
+                </div>
+                <div className="truncate text-xs text-[rgb(var(--muted))]">
+                  {displayEmail}
                 </div>
               </div>
             )}

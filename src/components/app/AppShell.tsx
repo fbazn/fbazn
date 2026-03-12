@@ -7,6 +7,7 @@ import { TopBar } from "./TopBar";
 import { DetailsDrawer } from "./DetailsDrawer";
 import { MockItem, ReviewQueueItem } from "@/lib/mockData";
 import { ReviewQueueProvider } from "./ReviewQueueContext";
+import { AddLeadModal } from "./AddLeadModal";
 
 type DrawerItem = MockItem | ReviewQueueItem;
 
@@ -36,16 +37,24 @@ export function useDetailsDrawer() {
   return context;
 }
 
+export type AppUser = {
+  id: string;
+  email: string;
+  name: string;
+};
+
 type AppShellProps = {
   children: ReactNode;
   recentItems: MockItem[];
   initialReviewQueueCount: number;
+  user: AppUser | null;
 };
 
 export function AppShell({
   children,
   recentItems,
   initialReviewQueueCount,
+  user,
 }: AppShellProps) {
   const [isPinned, setIsPinned] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -54,6 +63,7 @@ export function AppShell({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerActions, setDrawerActions] =
     useState<ReviewQueueDrawerActions | null>(null);
+  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
 
   const isExpanded = isPinned || isHovering || isMobileOpen;
   const sidebarWidth = isExpanded ? "260px" : "72px";
@@ -92,9 +102,14 @@ export function AppShell({
             onCloseMobile={() => setIsMobileOpen(false)}
             onHoverChange={(value) => setIsHovering(value)}
             recentItems={recentItems}
+            user={user}
           />
 
-          <TopBar onOpenMobileMenu={() => setIsMobileOpen(true)} />
+          <TopBar
+            onOpenMobileMenu={() => setIsMobileOpen(true)}
+            onOpenAddLead={() => setIsAddLeadOpen(true)}
+            user={user}
+          />
 
           <div
             className={`relative pt-24 transition-[padding] md:pl-[var(--sidebar-width)] ${
@@ -113,6 +128,9 @@ export function AppShell({
             />
           )}
           <DetailsDrawer />
+          {isAddLeadOpen && (
+            <AddLeadModal onClose={() => setIsAddLeadOpen(false)} />
+          )}
         </div>
       </DetailsDrawerContext.Provider>
     </ReviewQueueProvider>
