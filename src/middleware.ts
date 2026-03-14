@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/tools"];
+// Paths authenticated users can always access regardless of subscription
+const BILLING_PATHS = ["/billing", "/api/stripe"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -38,6 +40,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isBillingPath = BILLING_PATHS.some((p) => pathname.startsWith(p));
 
   // Redirect unauthenticated users to /login
   if (!user && !isPublic) {
@@ -51,6 +54,27 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
+  }
+
+  // Check subscription for authenticated users accessing protected app routes
+  if (user && !isPublic && !isBillingPath) {
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("status, trial_ends_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const hasAccess =
+      sub &&
+      (sub.status === "active" ||
+        sub.status === "trialing" ||
+        sub.status === "past_due");
+
+    if (!hasAccess) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/billing";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
