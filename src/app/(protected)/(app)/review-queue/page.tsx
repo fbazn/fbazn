@@ -8,7 +8,7 @@ export default async function ReviewQueuePage() {
   const { data, error } = await supabase
     .from("review_queue")
     .select(
-      "id, asin, title, image_url, category, size_tier, buy_box_price, cost_price, referral_fee, fba_fee, net_profit, roi, margin, status, notes, created_at",
+      "id, asin, title, image_url, category, size_tier, buy_box_price, cost_price, referral_fee, fba_fee, net_profit, roi, margin, status, notes, supplier_name, supplier_product_url, supplier_sku, supplier_cost, created_at",
     )
     .order("created_at", { ascending: false })
     .returns<QueueRow[]>();
