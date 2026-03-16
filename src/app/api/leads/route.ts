@@ -18,17 +18,31 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-  // Verify bearer token from the Chrome extension
+  // ── Auth diagnostics ────────────────────────────────────────────────────────
   const auth = request.headers.get("authorization");
+  console.log("[FBAZN leads] Authorization header present:", !!auth);
+  console.log("[FBAZN leads] Starts with 'Bearer ':", auth?.startsWith("Bearer ") ?? false);
+
   if (!auth?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401, headers: CORS });
+    console.log("[FBAZN leads] 401 — missing or malformed Authorization header");
+    return NextResponse.json({ error: "Missing bearer token" }, { status: 401, headers: CORS });
   }
+
   const token = auth.slice(7);
+  console.log("[FBAZN leads] Token extracted, length:", token.length, "| prefix:", token.slice(0, 12) + "…");
 
   // Validate the token against Supabase
+  console.log("[FBAZN leads] Calling supabaseAdmin.auth.getUser()…");
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  console.log("[FBAZN leads] getUser result — user:", user?.id ?? "null", "| error:", authError?.message ?? "none");
+
   if (authError || !user) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401, headers: CORS });
+    const expired = authError?.message?.toLowerCase().includes("expired");
+    console.log("[FBAZN leads] 401 —", expired ? "token expired" : "invalid token");
+    return NextResponse.json(
+      { error: expired ? "Token expired — please sign out and back in" : "Invalid or expired token" },
+      { status: 401, headers: CORS },
+    );
   }
 
   // Check the user has an active subscription
