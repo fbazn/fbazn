@@ -1,15 +1,21 @@
-import { getReviewQueueRows } from "@/data/sourcingItems";
-import { toReviewQueueItem } from "@/data/adapters";
+import { createClient } from "@/lib/supabase/server";
 import ReviewQueueClient from "./ReviewQueueClient";
+import type { QueueRow } from "./ReviewQueueClient";
 
 export default async function ReviewQueuePage() {
-  const items = (await getReviewQueueRows()).map(toReviewQueueItem);
-  const showSeedButton = process.env.NODE_ENV === "development";
+  const supabase = await createClient();
 
-  return (
-    <ReviewQueueClient
-      initialItems={items}
-      showSeedButton={showSeedButton}
-    />
-  );
+  const { data, error } = await supabase
+    .from("review_queue")
+    .select(
+      "id, asin, title, image_url, category, size_tier, buy_box_price, cost_price, referral_fee, fba_fee, net_profit, roi, margin, status, notes, created_at",
+    )
+    .order("created_at", { ascending: false })
+    .returns<QueueRow[]>();
+
+  if (error) {
+    console.error("[review_queue] page fetch error:", error);
+  }
+
+  return <ReviewQueueClient initialItems={data ?? []} />;
 }
