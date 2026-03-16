@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
   const {
     asin,
     title,
+    image_url,
     category,
     size_tier,
     buy_box_price,
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
     user_id: user.id,
     asin,
     title: title ?? null,
+    image_url: typeof image_url === "string" && image_url.startsWith("https://") ? image_url : null,
     category: category ?? null,
     size_tier: size_tier ?? null,
     buy_box_price: buy_box_price ?? null,
