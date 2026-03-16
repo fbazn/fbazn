@@ -41,9 +41,12 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isBillingPath = BILLING_PATHS.some((p) => pathname.startsWith(p));
+  // API routes handle their own auth via Bearer token — never redirect them,
+  // otherwise OPTIONS preflights get a 302 → broken CORS for the extension.
+  const isApiRoute = pathname.startsWith("/api/");
 
   // Redirect unauthenticated users to /login
-  if (!user && !isPublic) {
+  if (!user && !isPublic && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -57,7 +60,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check subscription for authenticated users accessing protected app routes
-  if (user && !isPublic && !isBillingPath) {
+  if (user && !isPublic && !isBillingPath && !isApiRoute) {
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("status, trial_ends_at")
