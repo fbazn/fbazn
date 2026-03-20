@@ -1,6 +1,13 @@
 "use client";
 
-import { useOptimistic, useTransition, useState, useCallback } from "react";
+import {
+  useOptimistic,
+  useTransition,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import {
   updateQueueStatus,
   deleteQueueItem,
@@ -8,6 +15,13 @@ import {
   convertToProduct,
   type QueueStatus,
 } from "@/app/actions/reviewQueue";
+import {
+  addProductSupplier,
+  removeProductSupplier,
+  createSupplier,
+  type Supplier,
+  type ProductSupplier,
+} from "@/app/actions/suppliers";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,24 +46,25 @@ export type QueueRow = {
   supplier_sku: string | null;
   supplier_cost: number | null;
   created_at: string;
+  review_queue_suppliers: ProductSupplier[];
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: { value: QueueStatus; label: string }[] = [
-  { value: "pending",   label: "New" },
+  { value: "pending", label: "New" },
   { value: "reviewing", label: "Reviewing" },
   { value: "contacted", label: "Contacted" },
-  { value: "ordered",   label: "Ordered" },
-  { value: "rejected",  label: "Rejected" },
+  { value: "ordered", label: "Ordered" },
+  { value: "rejected", label: "Rejected" },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  pending:   "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  pending: "bg-blue-500/15 text-blue-300 border-blue-500/30",
   reviewing: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   contacted: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  ordered:   "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  rejected:  "bg-rose-500/15 text-rose-300 border-rose-500/30",
+  ordered: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  rejected: "bg-rose-500/15 text-rose-300 border-rose-500/30",
 };
 
 function statusLabel(s: string) {
@@ -58,7 +73,10 @@ function statusLabel(s: string) {
 
 function gbp(n: number | null) {
   if (n === null || n === undefined) return "—";
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(n);
 }
 
 function pct(n: number | null) {
@@ -75,7 +93,10 @@ function relativeDate(iso: string) {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function profitColour(n: number | null) {
@@ -85,7 +106,399 @@ function profitColour(n: number | null) {
 
 function initials(title: string | null) {
   if (!title) return "?";
-  return title.trim().split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  return title
+    .trim()
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+/** Given an item + linked suppliers, compute live economics from cheapest cost */
+function computeEconomics(
+  item: QueueRow,
+  suppliers: ProductSupplier[],
+): {
+  costPrice: number | null;
+  netProfit: number | null;
+  roi: number | null;
+  margin: number | null;
+} {
+  const withCost = suppliers.filter((s) => s.cost_price != null);
+  const cheapestCost =
+    withCost.length > 0
+      ? Math.min(...withCost.map((s) => s.cost_price!))
+      : item.cost_price;
+
+  if (
+    cheapestCost == null ||
+    item.buy_box_price == null ||
+    item.referral_fee == null ||
+    item.fba_fee == null
+  ) {
+    return {
+      costPrice: cheapestCost,
+      netProfit: item.net_profit,
+      roi: item.roi,
+      margin: item.margin,
+    };
+  }
+
+  const totalFees = item.referral_fee + item.fba_fee;
+  const netProfit = item.buy_box_price - cheapestCost - totalFees;
+  const roi = cheapestCost > 0 ? (netProfit / cheapestCost) * 100 : null;
+  const margin =
+    item.buy_box_price > 0 ? (netProfit / item.buy_box_price) * 100 : null;
+
+  return { costPrice: cheapestCost, netProfit, roi, margin };
+}
+
+// ── Add Supplier Modal ─────────────────────────────────────────────────────
+
+function AddSupplierModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (supplier: Supplier) => void;
+}) {
+  const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError("");
+    const res = await createSupplier({
+      name: name.trim(),
+      website: website.trim() || undefined,
+      notes: notes.trim() || undefined,
+    });
+    if (res.error) {
+      setError(res.error);
+      setSaving(false);
+      return;
+    }
+    if (res.supplier) onCreated(res.supplier);
+    onClose();
+  }
+
+  const inputCls =
+    "w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] placeholder:text-[rgb(var(--muted))]/50 focus:outline-none focus:ring-1 focus:ring-blue-500/60 transition";
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-[70] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-2xl">
+        <form onSubmit={handleSubmit}>
+          <div className="border-b border-[rgb(var(--border))] px-6 py-4">
+            <h3 className="font-semibold text-[rgb(var(--text))]">New Supplier</h3>
+            <p className="mt-0.5 text-sm text-[rgb(var(--muted))]">
+              Add a supplier to your directory.
+            </p>
+          </div>
+          <div className="space-y-4 p-6">
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--muted))]">
+                Supplier name <span className="text-rose-400">*</span>
+              </label>
+              <input
+                ref={inputRef}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Wholesale Central"
+                className={inputCls}
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Website</label>
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://supplier.com"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Notes</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Payment terms, contact info…"
+                className={`${inputCls} resize-none`}
+              />
+            </div>
+            {error && (
+              <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-400">{error}</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 border-t border-[rgb(var(--border))] px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-[rgb(var(--border))] px-4 py-2 text-sm text-[rgb(var(--muted))] transition hover:bg-[rgb(var(--panel))]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !name.trim()}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Add Supplier"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
+  );
+}
+
+// ── Supplier section inside panel ──────────────────────────────────────────
+
+function SupplierSection({
+  item,
+  linkedSuppliers,
+  allSuppliers,
+  onSuppliersChange,
+}: {
+  item: QueueRow;
+  linkedSuppliers: ProductSupplier[];
+  allSuppliers: Supplier[];
+  onSuppliersChange: (updated: ProductSupplier[]) => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState("__none__");
+  const [newSku, setNewSku] = useState("");
+  const [newCost, setNewCost] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>(allSuppliers);
+
+  // Sort linked: cheapest first (nulls last)
+  const sorted = [...linkedSuppliers].sort((a, b) => {
+    if (a.cost_price == null && b.cost_price == null) return 0;
+    if (a.cost_price == null) return 1;
+    if (b.cost_price == null) return -1;
+    return a.cost_price - b.cost_price;
+  });
+
+  const cheapestId = sorted[0]?.id ?? null;
+
+  // Suppliers not yet linked to this product
+  const linkedIds = new Set(linkedSuppliers.map((s) => s.supplier_id));
+  const available = localSuppliers.filter((s) => !linkedIds.has(s.id));
+
+  const inputCls =
+    "w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] placeholder:text-[rgb(var(--muted))]/50 focus:outline-none focus:ring-1 focus:ring-blue-500/60 transition";
+
+  async function handleAdd() {
+    if (selectedSupplierId === "__none__") return;
+    setAdding(true);
+    setAddError("");
+    const res = await addProductSupplier({
+      queue_item_id: item.id,
+      supplier_id: selectedSupplierId,
+      supplier_sku: newSku.trim() || undefined,
+      cost_price: newCost !== "" ? parseFloat(newCost) : undefined,
+    });
+    if (res.error) {
+      setAddError(res.error);
+      setAdding(false);
+      return;
+    }
+    if (res.productSupplier) {
+      onSuppliersChange([...linkedSuppliers, res.productSupplier]);
+    }
+    setSelectedSupplierId("__none__");
+    setNewSku("");
+    setNewCost("");
+    setAdding(false);
+  }
+
+  async function handleRemove(linkId: string) {
+    const res = await removeProductSupplier(linkId, item.id);
+    if (!res.error) {
+      onSuppliersChange(linkedSuppliers.filter((s) => s.id !== linkId));
+    }
+  }
+
+  function handleNewSupplierCreated(supplier: Supplier) {
+    setLocalSuppliers((prev) => [...prev, supplier]);
+    setSelectedSupplierId(supplier.id);
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
+        Suppliers
+      </p>
+
+      {/* Linked supplier list */}
+      {sorted.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {sorted.map((link, i) => {
+            const isCheapest = link.id === cheapestId && sorted.length > 1;
+            const isExpensive = i > 0 && sorted.length > 1;
+            const cheapestLink = sorted[0];
+
+            return (
+              <div
+                key={link.id}
+                className={`rounded-lg border p-3 transition ${
+                  isCheapest
+                    ? "border-emerald-500/40 bg-emerald-500/5"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--panel))]"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-[rgb(var(--text))] truncate">
+                        {link.supplier?.name ?? "Unknown"}
+                      </span>
+                      {isCheapest && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                          ✓ Cheapest
+                        </span>
+                      )}
+                      {isExpensive && cheapestLink?.cost_price != null && link.cost_price != null && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400">
+                          +{gbp(link.cost_price - cheapestLink.cost_price)} vs cheapest
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-[rgb(var(--muted))]">
+                      {link.cost_price != null && (
+                        <span className="font-mono font-semibold text-[rgb(var(--text))]">
+                          {gbp(link.cost_price)}
+                        </span>
+                      )}
+                      {link.supplier_sku && (
+                        <span className="font-mono opacity-70">{link.supplier_sku}</span>
+                      )}
+                      {link.supplier?.website && (
+                        <a
+                          href={link.supplier.website}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-blue-400 transition truncate max-w-[120px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {link.supplier.website.replace(/^https?:\/\//, "")} ↗
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(link.id)}
+                    title="Remove supplier"
+                    className="flex-shrink-0 rounded p-1 text-[rgb(var(--muted))] transition hover:bg-rose-500/10 hover:text-rose-400"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add supplier row */}
+      <div className="rounded-lg border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--panel))]/40 p-3 space-y-2.5">
+        <div>
+          <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Select supplier</label>
+          <select
+            value={selectedSupplierId}
+            onChange={(e) => {
+              if (e.target.value === "__add_new__") {
+                setShowModal(true);
+                setSelectedSupplierId("__none__");
+              } else {
+                setSelectedSupplierId(e.target.value);
+              }
+            }}
+            className="w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-1 focus:ring-blue-500/60 transition cursor-pointer"
+          >
+            <option value="__none__">— Select a supplier —</option>
+            {available.map((s) => (
+              <option key={s.id} value={s.id} className="bg-[#0f172a]">
+                {s.name}
+              </option>
+            ))}
+            <option value="__add_new__" className="bg-[#0f172a] text-blue-400 font-semibold">
+              + Add new supplier…
+            </option>
+          </select>
+        </div>
+
+        {selectedSupplierId !== "__none__" && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--muted))]">SKU</label>
+              <input
+                type="text"
+                value={newSku}
+                onChange={(e) => setNewSku(e.target.value)}
+                placeholder="SKU-001"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Cost (£)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={newCost}
+                onChange={(e) => setNewCost(e.target.value)}
+                placeholder="0.00"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        )}
+
+        {selectedSupplierId !== "__none__" && (
+          <button
+            onClick={handleAdd}
+            disabled={adding}
+            className="w-full rounded-lg bg-[rgb(var(--card))] border border-[rgb(var(--border))] py-2 text-sm font-medium text-[rgb(var(--text))] transition hover:bg-[rgb(var(--panel))] disabled:opacity-60"
+          >
+            {adding ? "Adding…" : "Add to product"}
+          </button>
+        )}
+
+        {addError && (
+          <p className="text-xs text-rose-400">{addError}</p>
+        )}
+      </div>
+
+      {showModal && (
+        <AddSupplierModal
+          onClose={() => setShowModal(false)}
+          onCreated={handleNewSupplierCreated}
+        />
+      )}
+    </div>
+  );
 }
 
 // ── ReviewPanel ────────────────────────────────────────────────────────────
@@ -95,6 +508,7 @@ type PanelConvertState = "idle" | "converting" | "done" | "error";
 
 function ReviewPanel({
   item,
+  allSuppliers,
   onClose,
   onStatusChange,
   onDelete,
@@ -102,42 +516,41 @@ function ReviewPanel({
   onConvert,
 }: {
   item: QueueRow;
+  allSuppliers: Supplier[];
   onClose: () => void;
   onStatusChange: (id: string, status: QueueStatus) => void;
   onDelete: (id: string) => void;
-  onEnrich: (id: string, fields: { supplier_name?: string; supplier_product_url?: string; supplier_sku?: string; supplier_cost?: number | null; notes?: string; status?: QueueStatus }) => Promise<void>;
+  onEnrich: (
+    id: string,
+    fields: {
+      notes?: string;
+      status?: QueueStatus;
+    },
+  ) => Promise<void>;
   onConvert: (id: string) => Promise<void>;
 }) {
-  const [supplierName, setSupplierName] = useState(item.supplier_name ?? "");
-  const [supplierUrl, setSupplierUrl] = useState(item.supplier_product_url ?? "");
-  const [supplierSku, setSupplierSku] = useState(item.supplier_sku ?? "");
-  const [supplierCost, setSupplierCost] = useState(
-    item.supplier_cost != null ? String(item.supplier_cost) : "",
+  const [linkedSuppliers, setLinkedSuppliers] = useState<ProductSupplier[]>(
+    (item.review_queue_suppliers ?? []) as ProductSupplier[],
   );
   const [notes, setNotes] = useState(item.notes ?? "");
   const [status, setStatus] = useState<QueueStatus>(item.status as QueueStatus);
-
   const [saveState, setSaveState] = useState<PanelSaveState>("idle");
   const [convertState, setConvertState] = useState<PanelConvertState>("idle");
+
+  // Live economics from cheapest supplier
+  const econ = computeEconomics(item, linkedSuppliers);
 
   const handleSave = useCallback(async () => {
     setSaveState("saving");
     try {
-      await onEnrich(item.id, {
-        supplier_name: supplierName || undefined,
-        supplier_product_url: supplierUrl || undefined,
-        supplier_sku: supplierSku || undefined,
-        supplier_cost: supplierCost !== "" ? parseFloat(supplierCost) : null,
-        notes: notes || undefined,
-        status,
-      });
+      await onEnrich(item.id, { notes: notes || undefined, status });
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
     } catch {
       setSaveState("error");
       setTimeout(() => setSaveState("idle"), 3000);
     }
-  }, [item.id, supplierName, supplierUrl, supplierSku, supplierCost, notes, status, onEnrich]);
+  }, [item.id, notes, status, onEnrich]);
 
   const handleReject = useCallback(async () => {
     setStatus("rejected");
@@ -163,11 +576,6 @@ function ReviewPanel({
     }
   }, [item.id, onConvert, onClose]);
 
-  const totalFees =
-    item.referral_fee != null && item.fba_fee != null
-      ? item.referral_fee + item.fba_fee
-      : null;
-
   const inputCls =
     "w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 py-2 text-sm text-[rgb(var(--text))] placeholder:text-[rgb(var(--muted))]/50 focus:outline-none focus:ring-1 focus:ring-blue-500/60 transition";
 
@@ -180,11 +588,10 @@ function ReviewPanel({
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 flex h-full w-[560px] flex-col bg-[rgb(var(--card))] shadow-2xl border-l border-[rgb(var(--border))]">
+      <div className="fixed right-0 top-0 z-50 flex h-full w-[580px] flex-col bg-[rgb(var(--card))] shadow-2xl border-l border-[rgb(var(--border))]">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div className="flex items-start gap-4 border-b border-[rgb(var(--border))] p-5">
-          {/* Product image */}
           <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[rgb(var(--panel))] ring-1 ring-[rgb(var(--border))]">
             {item.image_url ? (
               <img src={item.image_url} alt="" className="h-full w-full object-cover" />
@@ -194,10 +601,11 @@ function ReviewPanel({
               </div>
             )}
           </div>
-
-          {/* Title / ASIN */}
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-[rgb(var(--text))] leading-snug line-clamp-2 text-[15px]" title={item.title ?? ""}>
+            <p
+              className="font-semibold text-[rgb(var(--text))] leading-snug line-clamp-2 text-[15px]"
+              title={item.title ?? ""}
+            >
               {item.title ?? "Unknown product"}
             </p>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
@@ -210,15 +618,19 @@ function ReviewPanel({
                 {item.asin} ↗
               </a>
               <span className="text-[rgb(var(--muted))]/40">·</span>
-              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES[item.status] ?? STATUS_STYLES.pending}`}>
+              <span
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                  STATUS_STYLES[item.status] ?? STATUS_STYLES.pending
+                }`}
+              >
                 {statusLabel(item.status)}
               </span>
               <span className="text-[rgb(var(--muted))]/40">·</span>
-              <span className="text-xs text-[rgb(var(--muted))]">{relativeDate(item.created_at)}</span>
+              <span className="text-xs text-[rgb(var(--muted))]">
+                {relativeDate(item.created_at)}
+              </span>
             </div>
           </div>
-
-          {/* Close */}
           <button
             onClick={onClose}
             className="flex-shrink-0 rounded-lg p-1.5 text-[rgb(var(--muted))] transition hover:bg-[rgb(var(--panel))] hover:text-[rgb(var(--text))]"
@@ -230,135 +642,140 @@ function ReviewPanel({
           </button>
         </div>
 
-        {/* ── Scrollable body ── */}
+        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* Economics strip */}
+          {/* Economics — live recalculated from cheapest supplier */}
           <div className="border-b border-[rgb(var(--border))] bg-[rgb(var(--panel))]/50 px-5 py-4">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">Economics</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
+                Economics
+              </p>
+              {linkedSuppliers.filter((s) => s.cost_price != null).length > 0 && (
+                <span className="text-[10px] text-emerald-400">
+                  ↳ using cheapest supplier cost
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "Buy Box",    value: gbp(item.buy_box_price) },
-                { label: "Your Cost",  value: gbp(item.cost_price) },
-                { label: "Ref Fee",    value: gbp(item.referral_fee) },
-                { label: "FBA Fee",    value: gbp(item.fba_fee) },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-lg bg-[rgb(var(--card))] border border-[rgb(var(--border))] p-2.5 text-center">
-                  <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
-                  <p className="mt-0.5 text-xs font-semibold font-mono text-[rgb(var(--text))]">{value}</p>
+                { label: "Buy Box", value: gbp(item.buy_box_price) },
+                {
+                  label: "Cost",
+                  value: gbp(econ.costPrice),
+                  highlight:
+                    econ.costPrice !== item.cost_price && econ.costPrice != null,
+                },
+                { label: "Ref Fee", value: gbp(item.referral_fee) },
+                { label: "FBA Fee", value: gbp(item.fba_fee) },
+              ].map(({ label, value, highlight }) => (
+                <div
+                  key={label}
+                  className={`rounded-lg border p-2.5 text-center transition ${
+                    highlight
+                      ? "border-emerald-500/30 bg-emerald-500/5"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                  }`}
+                >
+                  <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
+                    {label}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-xs font-semibold font-mono ${
+                      highlight ? "text-emerald-400" : "text-[rgb(var(--text))]"
+                    }`}
+                  >
+                    {value}
+                  </p>
                 </div>
               ))}
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {[
-                { label: "Net Profit", value: gbp(item.net_profit),  colour: profitColour(item.net_profit) },
-                { label: "ROI",        value: pct(item.roi),          colour: profitColour(item.roi) },
-                { label: "Margin",     value: pct(item.margin),       colour: profitColour(item.margin) },
+                { label: "Net Profit", value: gbp(econ.netProfit), colour: profitColour(econ.netProfit) },
+                { label: "ROI", value: pct(econ.roi), colour: profitColour(econ.roi) },
+                { label: "Margin", value: pct(econ.margin), colour: profitColour(econ.margin) },
               ].map(({ label, value, colour }) => (
-                <div key={label} className="rounded-lg bg-[rgb(var(--card))] border border-[rgb(var(--border))] p-2.5 text-center">
-                  <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
+                <div
+                  key={label}
+                  className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2.5 text-center"
+                >
+                  <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
+                    {label}
+                  </p>
                   <p className={`mt-0.5 text-sm font-bold font-mono ${colour}`}>{value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Form fields */}
           <div className="space-y-5 p-5">
 
-            {/* Classification row */}
+            {/* Classification */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-[rgb(var(--panel))] border border-[rgb(var(--border))] px-3 py-2.5">
                 <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Category</p>
                 <p className="mt-0.5 text-sm text-[rgb(var(--text))]">
-                  {item.category ?? <span className="italic text-[rgb(var(--muted))]">Unknown</span>}
+                  {item.category ?? (
+                    <span className="italic text-[rgb(var(--muted))]">Unknown</span>
+                  )}
                 </p>
               </div>
               <div className="rounded-lg bg-[rgb(var(--panel))] border border-[rgb(var(--border))] px-3 py-2.5">
                 <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Size Tier</p>
                 <p className="mt-0.5 text-sm text-[rgb(var(--text))]">
-                  {item.size_tier ?? <span className="italic text-[rgb(var(--muted))]">Unknown</span>}
+                  {item.size_tier ?? (
+                    <span className="italic text-[rgb(var(--muted))]">Unknown</span>
+                  )}
                 </p>
               </div>
             </div>
 
             {/* Status */}
             <div>
-              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">Status</label>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
+                Status
+              </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as QueueStatus)}
-                className={`w-full rounded-lg border px-3 py-2 text-sm font-semibold bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500/60 cursor-pointer transition ${STATUS_STYLES[status] ?? STATUS_STYLES.pending}`}
+                className={`w-full rounded-lg border px-3 py-2 text-sm font-semibold bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500/60 cursor-pointer transition ${
+                  STATUS_STYLES[status] ?? STATUS_STYLES.pending
+                }`}
               >
                 {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} className="bg-[#0f172a] text-white font-normal">
+                  <option
+                    key={o.value}
+                    value={o.value}
+                    className="bg-[#0f172a] text-white font-normal"
+                  >
                     {o.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Divider */}
             <div className="border-t border-[rgb(var(--border))]" />
 
-            {/* Supplier details */}
-            <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">Supplier Details</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Supplier name</label>
-                  <input
-                    type="text"
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    placeholder="e.g. Wholesale Central"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Product URL</label>
-                  <input
-                    type="url"
-                    value={supplierUrl}
-                    onChange={(e) => setSupplierUrl(e.target.value)}
-                    placeholder="https://supplier.com/product"
-                    className={inputCls}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Supplier SKU</label>
-                    <input
-                      type="text"
-                      value={supplierSku}
-                      onChange={(e) => setSupplierSku(e.target.value)}
-                      placeholder="SKU-001"
-                      className={inputCls}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Supplier cost (£)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={supplierCost}
-                      onChange={(e) => setSupplierCost(e.target.value)}
-                      placeholder="0.00"
-                      className={inputCls}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Supplier section */}
+            <SupplierSection
+              item={item}
+              linkedSuppliers={linkedSuppliers}
+              allSuppliers={allSuppliers}
+              onSuppliersChange={setLinkedSuppliers}
+            />
+
+            <div className="border-t border-[rgb(var(--border))]" />
 
             {/* Notes */}
             <div>
-              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">Notes</label>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
+                Notes
+              </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={4}
+                rows={3}
                 placeholder="Add any notes about this lead…"
                 className={`${inputCls} resize-none`}
               />
@@ -366,9 +783,8 @@ function ReviewPanel({
           </div>
         </div>
 
-        {/* ── Footer actions ── */}
+        {/* Footer actions */}
         <div className="border-t border-[rgb(var(--border))] bg-[rgb(var(--panel))]/30 p-4 space-y-2.5">
-          {/* Convert — primary CTA */}
           <button
             onClick={handleConvert}
             disabled={convertState === "converting" || convertState === "done"}
@@ -380,8 +796,6 @@ function ReviewPanel({
               ? "✓ Converted to product"
               : "⚡ Convert to Product"}
           </button>
-
-          {/* Secondary row */}
           <div className="flex gap-2">
             <button
               onClick={handleSave}
@@ -423,9 +837,12 @@ function ReviewPanel({
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-type Props = { initialItems: QueueRow[] };
+type Props = {
+  initialItems: QueueRow[];
+  allSuppliers: Supplier[];
+};
 
-export default function ReviewQueueClient({ initialItems }: Props) {
+export default function ReviewQueueClient({ initialItems, allSuppliers }: Props) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -439,8 +856,14 @@ export default function ReviewQueueClient({ initialItems }: Props) {
         | { type: "enrich"; id: string; fields: Partial<QueueRow> },
     ) => {
       if (action.type === "delete") return state.filter((i) => i.id !== action.id);
-      if (action.type === "status") return state.map((i) => i.id === action.id ? { ...i, status: action.status } : i);
-      if (action.type === "enrich") return state.map((i) => i.id === action.id ? { ...i, ...action.fields } : i);
+      if (action.type === "status")
+        return state.map((i) =>
+          i.id === action.id ? { ...i, status: action.status } : i,
+        );
+      if (action.type === "enrich")
+        return state.map((i) =>
+          i.id === action.id ? { ...i, ...action.fields } : i,
+        );
       return state;
     },
   );
@@ -462,7 +885,10 @@ export default function ReviewQueueClient({ initialItems }: Props) {
     });
   }
 
-  async function handleEnrich(id: string, fields: Parameters<typeof enrichQueueItem>[1]) {
+  async function handleEnrich(
+    id: string,
+    fields: { notes?: string; status?: QueueStatus },
+  ) {
     setOptimisticItems({ type: "enrich", id, fields });
     const res = await enrichQueueItem(id, fields);
     if (res?.error) throw new Error(res.error);
@@ -477,7 +903,7 @@ export default function ReviewQueueClient({ initialItems }: Props) {
   return (
     <div className="space-y-5">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -492,11 +918,10 @@ export default function ReviewQueueClient({ initialItems }: Props) {
         </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* Table */}
       <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">
-
             <thead>
               <tr className="border-b border-[rgb(var(--border))] bg-[rgb(var(--panel))]/60">
                 <th className="px-3 py-3 pl-4 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Item</th>
@@ -511,7 +936,6 @@ export default function ReviewQueueClient({ initialItems }: Props) {
                 <th className="w-10" />
               </tr>
             </thead>
-
             <tbody className="divide-y divide-[rgb(var(--border))]">
 
               {items.length === 0 && (
@@ -530,6 +954,10 @@ export default function ReviewQueueClient({ initialItems }: Props) {
 
               {items.map((item) => {
                 const isActive = item.id === activeId;
+                const suppliers = (item.review_queue_suppliers ?? []) as ProductSupplier[];
+                const econ = computeEconomics(item, suppliers);
+                const supplierCount = suppliers.length;
+
                 return (
                   <tr
                     key={item.id}
@@ -555,20 +983,27 @@ export default function ReviewQueueClient({ initialItems }: Props) {
                         </div>
                         <div className="min-w-0">
                           <div
-                            className="w-[220px] truncate font-medium text-[rgb(var(--text))] text-[13px]"
+                            className="w-[200px] truncate font-medium text-[rgb(var(--text))] text-[13px]"
                             title={item.title ?? ""}
                           >
                             {item.title ?? "Unknown product"}
                           </div>
-                          <a
-                            href={`https://www.amazon.co.uk/dp/${item.asin}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-mono text-[11px] text-[rgb(var(--muted))] hover:text-blue-400 transition"
-                          >
-                            {item.asin}
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`https://www.amazon.co.uk/dp/${item.asin}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-mono text-[11px] text-[rgb(var(--muted))] hover:text-blue-400 transition"
+                            >
+                              {item.asin}
+                            </a>
+                            {supplierCount > 0 && (
+                              <span className="text-[10px] text-[rgb(var(--muted))]/60">
+                                · {supplierCount} supplier{supplierCount > 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -588,28 +1023,32 @@ export default function ReviewQueueClient({ initialItems }: Props) {
                       {gbp(item.buy_box_price)}
                     </td>
 
-                    {/* Cost */}
+                    {/* Cost — from cheapest supplier if available */}
                     <td className="px-3 py-2.5 text-right font-mono text-[13px] text-[rgb(var(--muted))]">
-                      {gbp(item.cost_price)}
+                      {gbp(econ.costPrice)}
                     </td>
 
                     {/* Net profit */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.net_profit)}`}>
-                      {gbp(item.net_profit)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(econ.netProfit)}`}>
+                      {gbp(econ.netProfit)}
                     </td>
 
                     {/* ROI */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.roi)}`}>
-                      {pct(item.roi)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(econ.roi)}`}>
+                      {pct(econ.roi)}
                     </td>
 
                     {/* Status */}
                     <td className="px-3 py-2.5">
                       <select
                         value={item.status}
-                        onChange={(e) => handleStatusChange(item.id, e.target.value as QueueStatus)}
+                        onChange={(e) =>
+                          handleStatusChange(item.id, e.target.value as QueueStatus)
+                        }
                         onClick={(e) => e.stopPropagation()}
-                        className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer bg-transparent focus:outline-none transition ${STATUS_STYLES[item.status] ?? STATUS_STYLES.pending}`}
+                        className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer bg-transparent focus:outline-none transition ${
+                          STATUS_STYLES[item.status] ?? STATUS_STYLES.pending
+                        }`}
                       >
                         {STATUS_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value} className="bg-[#0f172a] text-white">
@@ -647,11 +1086,12 @@ export default function ReviewQueueClient({ initialItems }: Props) {
         </div>
       </div>
 
-      {/* ── Slide-over panel ── */}
+      {/* Slide-over panel */}
       {activeItem && (
         <ReviewPanel
           key={activeItem.id}
           item={activeItem}
+          allSuppliers={allSuppliers}
           onClose={() => setActiveId(null)}
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}

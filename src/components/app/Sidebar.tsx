@@ -5,7 +5,7 @@ import {
   ClipboardList,
   List,
   Search,
-  Tag,
+  Building2,
   Bell,
   Plug,
   CreditCard,
@@ -71,7 +71,7 @@ export function Sidebar({
     },
     { label: "Sourcing List", href: "/sourcing", icon: List },
     { label: "ASIN Lookup", href: "/asin", icon: Search },
-    { label: "Deals", href: "/deals", icon: Tag },
+    { label: "Suppliers", href: "/suppliers", icon: Building2 },
     { label: "Alerts", href: "/alerts", icon: Bell },
   ];
 
