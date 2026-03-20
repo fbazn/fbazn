@@ -257,7 +257,7 @@ export async function getSupplierWithProducts(supplierId: string) {
 
   return {
     supplier: supplier as Supplier,
-    links: (links ?? []) as Array<{
+    links: (links ?? []) as unknown as Array<{
       id: string;
       supplier_sku: string | null;
       cost_price: number | null;
