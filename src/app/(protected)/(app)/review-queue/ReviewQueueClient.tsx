@@ -55,7 +55,6 @@ const STATUS_OPTIONS: { value: QueueStatus; label: string }[] = [
   { value: "pending", label: "New" },
   { value: "reviewing", label: "Reviewing" },
   { value: "contacted", label: "Contacted" },
-  { value: "ordered", label: "Ordered" },
   { value: "rejected", label: "Rejected" },
 ];
 
