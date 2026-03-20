@@ -6,6 +6,7 @@ import {
   List,
   Search,
   Building2,
+  Archive,
   Bell,
   Plug,
   CreditCard,
@@ -72,6 +73,7 @@ export function Sidebar({
     { label: "Sourcing List", href: "/sourcing", icon: List },
     { label: "ASIN Lookup", href: "/asin", icon: Search },
     { label: "Suppliers", href: "/suppliers", icon: Building2 },
+    { label: "Archived", href: "/archived", icon: Archive },
     { label: "Alerts", href: "/alerts", icon: Bell },
   ];
 

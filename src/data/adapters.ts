@@ -9,6 +9,7 @@ const statusMap: Record<SourcingItemRow["status"], MockItem["status"]> = {
   saved: "Saved",
   rejected: "Rejected",
   in_progress: "In Progress",
+  archived: "Rejected",
 };
 
 const formatSavedAt = (value: string) => {
