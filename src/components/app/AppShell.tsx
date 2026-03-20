@@ -116,7 +116,7 @@ export function AppShell({
               isDrawerOpen ? "md:pr-[420px]" : "md:pr-0"
             }`}
           >
-            <main className="mx-auto w-full max-w-6xl px-4 pb-16 md:px-8">
+            <main className="mx-auto w-full max-w-screen-2xl px-4 pb-16 md:px-8">
               {children}
             </main>
           </div>
