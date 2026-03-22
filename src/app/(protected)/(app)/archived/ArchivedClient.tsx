@@ -143,7 +143,7 @@ export default function ArchivedClient({ initialItems }: Props) {
                             <img src={item.image_url} alt="" className="h-full w-full object-cover grayscale" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-[rgb(var(--muted))]">
-                              {initials(item.title)}
+                              {initials(item.title ?? "")}
                             </div>
                           )}
                         </div>
