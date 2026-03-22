@@ -73,7 +73,6 @@ export function DetailsDrawer() {
           supplier_name: supplierName,
           supplier_url: supplierUrl,
           supplier_cost: parsedSupplierCost,
-          tags,
           notes,
         });
       });
