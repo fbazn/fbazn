@@ -62,6 +62,21 @@ export async function getActiveProducts(): Promise<SourcingItemRow[]> {
   return data ?? [];
 }
 
+/** Most recently updated live products — used in sidebar + dashboard */
+export async function getRecentRows(limit = 8): Promise<SourcingItemRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("review_queue")
+    .select(baseSelect)
+    .eq("live_product", true)
+    .eq("archived", false)
+    .order("updated_at", { ascending: false })
+    .limit(limit)
+    .returns<SourcingItemRow[]>();
+  if (error) { console.error("Failed to load recent rows", error); return []; }
+  return data ?? [];
+}
+
 /** Archived products — shown on Archived page */
 export async function getArchivedProducts(): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
