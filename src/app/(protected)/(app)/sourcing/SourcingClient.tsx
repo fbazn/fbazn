@@ -124,7 +124,7 @@ function ProductPanel({
           <div className="min-w-0 flex-1">
             <p
               className="font-semibold text-[rgb(var(--text))] leading-snug line-clamp-2 text-[15px]"
-              title={item.title}
+              title={item.title ?? undefined}
             >
               {item.title}
             </p>
@@ -417,7 +417,7 @@ export default function SourcingClient({ initialItems }: Props) {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="w-[220px] truncate font-medium text-[rgb(var(--text))] text-[13px]" title={item.title}>
+                          <div className="w-[220px] truncate font-medium text-[rgb(var(--text))] text-[13px]" title={item.title ?? undefined}>
                             {item.title}
                           </div>
                           <a

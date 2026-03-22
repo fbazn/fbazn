@@ -148,7 +148,7 @@ export default function ArchivedClient({ initialItems }: Props) {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <div className="w-[220px] truncate font-medium text-[rgb(var(--muted))] text-[13px]" title={item.title}>
+                          <div className="w-[220px] truncate font-medium text-[rgb(var(--muted))] text-[13px]" title={item.title ?? undefined}>
                             {item.title}
                           </div>
                           <a
