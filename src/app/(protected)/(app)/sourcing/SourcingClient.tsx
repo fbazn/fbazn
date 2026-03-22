@@ -81,7 +81,7 @@ function ProductPanel({
       setSaveState("error");
       setTimeout(() => setSaveState("idle"), 3000);
     }
-  }, [item.id, supplierName, supplierUrl, supplierCost, notes, onUpdate]);
+  }, [item.id, supplierName, supplierCost, notes, onUpdate]);
 
   const handleArchive = useCallback(async () => {
     if (!confirm("Archive this product? You can restore it later from Archived Products.")) return;
@@ -117,7 +117,7 @@ function ProductPanel({
               <img src={item.image_url} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[rgb(var(--muted))]">
-                {initials(item.title)}
+                {initials(item.title ?? "")}
               </div>
             )}
           </div>
@@ -412,7 +412,7 @@ export default function SourcingClient({ initialItems }: Props) {
                             <img src={item.image_url} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-[rgb(var(--muted))]">
-                              {initials(item.title)}
+                              {initials(item.title ?? "")}
                             </div>
                           )}
                         </div>
