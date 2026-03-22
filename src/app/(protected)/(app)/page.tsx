@@ -101,7 +101,10 @@ export default async function DashboardPage() {
                     <div className="truncate text-sm font-medium text-[rgb(var(--text))]">{item.title}</div>
                     <div className="text-xs text-[rgb(var(--muted))]">{item.asin}</div>
                   </div>
-                  <Badge label={`${item.roi}% ROI`} variant="success" />
+                  <Badge
+                    label={`${item.roi}% ROI`}
+                    variant={item.roi >= 0 ? "success" : "danger"}
+                  />
                 </div>
               ))}
             </div>

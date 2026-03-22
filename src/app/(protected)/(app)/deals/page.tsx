@@ -1,11 +1,3 @@
-import { Badge } from "@/components/app/Badge";
-
-const deals = [
-  { title: "Flash liquidation", detail: "45 SKUs • $8-12 margin" },
-  { title: "Electronics bundle", detail: "12 SKUs • 2-week lead" },
-  { title: "Seasonal closeout", detail: "27 SKUs • Limited stock" },
-];
-
 export default function DealsPage() {
   return (
     <div className="space-y-6">
@@ -15,26 +7,30 @@ export default function DealsPage() {
           Curated supplier opportunities and short-term promotions.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {deals.map((deal) => (
-          <div
-            key={deal.title}
-            className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5"
+
+      {/* Coming soon */}
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgb(var(--border))] py-24 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-[rgb(var(--muted))]"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[rgb(var(--text))]">
-                {deal.title}
-              </h3>
-              <Badge label="Hot" variant="warning" />
-            </div>
-            <p className="mt-3 text-sm text-[rgb(var(--muted))]">
-              {deal.detail}
-            </p>
-            <button className="mt-4 rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))]">
-              Review deal
-            </button>
-          </div>
-        ))}
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+        </div>
+        <p className="mt-4 font-semibold text-[rgb(var(--text))]">Deals — coming soon</p>
+        <p className="mt-1.5 max-w-sm text-sm text-[rgb(var(--muted))]">
+          Curated supplier liquidations, bulk lots, and short-window promotions will appear
+          here. We&apos;ll notify you when this is live.
+        </p>
       </div>
     </div>
   );

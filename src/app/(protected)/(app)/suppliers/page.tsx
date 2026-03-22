@@ -1,9 +1,27 @@
 import Link from "next/link";
 import { getSuppliersWithCounts } from "@/app/actions/suppliers";
 
-function gbp(n: number | null) {
-  if (n === null || n === undefined) return "—";
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+function supplierInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+// Deterministic colour based on the supplier name
+function supplierColour(name: string): string {
+  const colours = [
+    "from-blue-400 to-blue-600",
+    "from-violet-400 to-violet-600",
+    "from-emerald-400 to-emerald-600",
+    "from-amber-400 to-orange-500",
+    "from-rose-400 to-rose-600",
+    "from-cyan-400 to-cyan-600",
+    "from-indigo-400 to-indigo-600",
+    "from-pink-400 to-pink-600",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colours[Math.abs(hash) % colours.length];
 }
 
 export default async function SuppliersPage() {
@@ -30,10 +48,25 @@ export default async function SuppliersPage() {
       {/* Empty state */}
       {suppliers.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[rgb(var(--border))] py-20 text-center">
-          <span className="text-4xl">🏭</span>
-          <p className="mt-3 font-semibold text-[rgb(var(--text))]">No suppliers yet</p>
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-[rgb(var(--muted))]"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+          <p className="mt-4 font-semibold text-[rgb(var(--text))]">No suppliers yet</p>
           <p className="mt-1 text-sm text-[rgb(var(--muted))]">
-            Add suppliers from the Review Queue when reviewing a product.
+            Suppliers are added when you link one to a product in the Review Queue.
           </p>
           <Link
             href="/review-queue"
@@ -53,19 +86,27 @@ export default async function SuppliersPage() {
               href={`/suppliers/${supplier.id}`}
               className="group rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 transition hover:border-blue-500/40 hover:bg-[rgb(var(--panel))]"
             >
-              {/* Icon + name */}
+              {/* Avatar + name */}
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--panel))] border border-[rgb(var(--border))] text-lg">
-                  🏭
+                <div
+                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white ${supplierColour(supplier.name)}`}
+                >
+                  {supplierInitials(supplier.name)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-[rgb(var(--text))] group-hover:text-blue-400 transition truncate">
+                  <p className="truncate font-semibold text-[rgb(var(--text))] group-hover:text-blue-400 transition">
                     {supplier.name}
                   </p>
                   {supplier.website && (
-                    <p className="mt-0.5 truncate text-xs text-[rgb(var(--muted))]">
-                      {supplier.website.replace(/^https?:\/\//, "")}
-                    </p>
+                    <a
+                      href={supplier.website.startsWith("http") ? supplier.website : `https://${supplier.website}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-0.5 block truncate text-xs text-[rgb(var(--muted))] hover:text-blue-400 transition"
+                    >
+                      {supplier.website.replace(/^https?:\/\//, "")} ↗
+                    </a>
                   )}
                 </div>
               </div>

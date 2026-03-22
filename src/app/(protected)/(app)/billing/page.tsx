@@ -58,6 +58,7 @@ export default function BillingPage() {
     setLoading(false);
   };
 
+  // Opens Stripe Customer Portal — handles both "manage billing" and "undo cancel"
   const handlePortal = async () => {
     setPortalLoading(true);
     const res = await fetch("/api/stripe/portal", { method: "POST" });
@@ -69,6 +70,7 @@ export default function BillingPage() {
   const currentPlan = sub ? PLANS.find((p) => p.id === sub.plan) : null;
   const isTrialing = sub?.status === "trialing";
   const isActive = sub?.status === "active";
+  const isCanceling = isActive && sub?.cancel_at_period_end;
   const trialDaysLeft = isTrialing && sub?.trial_ends_at ? daysUntil(sub.trial_ends_at) : null;
 
   return (
@@ -92,7 +94,8 @@ export default function BillingPage() {
                   {currentPlan.name} Plan
                 </h3>
                 {isTrialing && <Badge label="Trial" variant="warning" />}
-                {isActive && <Badge label="Active" variant="success" />}
+                {isActive && !isCanceling && <Badge label="Active" variant="success" />}
+                {isCanceling && <Badge label="Canceling" variant="warning" />}
                 {sub.status === "past_due" && <Badge label="Past due" variant="danger" />}
                 {sub.status === "canceled" && <Badge label="Canceled" variant="default" />}
               </div>
@@ -100,30 +103,62 @@ export default function BillingPage() {
                 £{currentPlan.price}/month
               </p>
               {isTrialing && trialDaysLeft !== null && (
-                <p className="mt-2 text-sm font-medium text-amber-500">
+                <p className="mt-2 text-sm font-medium text-amber-400">
                   {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left in your free trial
                   {sub.trial_ends_at && ` · ends ${fmt(sub.trial_ends_at)}`}
                 </p>
               )}
-              {isActive && sub.current_period_end && (
+              {isActive && sub.current_period_end && !isCanceling && (
                 <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-                  {sub.cancel_at_period_end
-                    ? `Cancels on ${fmt(sub.current_period_end)}`
-                    : `Renews on ${fmt(sub.current_period_end)}`}
+                  Renews on {fmt(sub.current_period_end)}
+                </p>
+              )}
+              {isCanceling && sub.current_period_end && (
+                <p className="mt-2 text-sm text-amber-400">
+                  Access ends on {fmt(sub.current_period_end)} · You won&apos;t be charged again
+                </p>
+              )}
+              {sub.status === "past_due" && (
+                <p className="mt-2 text-sm text-rose-400">
+                  Your last payment failed. Update your payment method to keep access.
                 </p>
               )}
             </div>
-            <button
-              onClick={handlePortal}
-              disabled={portalLoading}
-              className="rounded-xl border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm font-medium text-[rgb(var(--text))] transition hover:bg-[rgb(var(--bg))] disabled:opacity-60"
-            >
-              {portalLoading ? "Opening…" : "Manage billing"}
-            </button>
+
+            <div className="flex flex-wrap gap-2">
+              {/* Undo cancel */}
+              {isCanceling && (
+                <button
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                  className="rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-60"
+                >
+                  {portalLoading ? "Opening…" : "Reactivate subscription"}
+                </button>
+              )}
+              {/* Update payment for past_due */}
+              {sub.status === "past_due" && (
+                <button
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                  className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-400 transition hover:bg-rose-500/20 disabled:opacity-60"
+                >
+                  {portalLoading ? "Opening…" : "Update payment method"}
+                </button>
+              )}
+              {/* Standard manage billing */}
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="rounded-xl border border-[rgb(var(--border-subtle,var(--border)))] px-4 py-2 text-sm font-medium text-[rgb(var(--text))] transition hover:bg-[rgb(var(--bg))] disabled:opacity-60"
+              >
+                {portalLoading ? "Opening…" : "Manage billing"}
+              </button>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
           No active subscription. Start your 7-day free trial below.
         </div>
       )}
@@ -141,14 +176,14 @@ export default function BillingPage() {
                 key={plan.id}
                 className={`flex flex-col rounded-2xl border p-6 transition ${
                   isCurrent
-                    ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10"
+                    ? "border-blue-500/40 bg-blue-500/10"
                     : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-[rgb(var(--text))]">{plan.name}</h4>
                   {isCurrent && (
-                    <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-xs font-medium text-white">
+                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
                       Current
                     </span>
                   )}
@@ -161,7 +196,7 @@ export default function BillingPage() {
                 <ul className="mt-4 flex-1 space-y-2">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-[rgb(var(--text))]">
-                      <span className="mt-0.5 text-indigo-500">✓</span>
+                      <span className="mt-0.5 text-blue-400">✓</span>
                       {f}
                     </li>
                   ))}
@@ -171,15 +206,15 @@ export default function BillingPage() {
                   disabled={loading || isCurrent}
                   className={`mt-6 h-10 rounded-xl text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     isCurrent
-                      ? "border border-indigo-300 text-indigo-500"
-                      : "bg-indigo-500 text-white hover:bg-indigo-400"
+                      ? "border border-blue-500/40 text-blue-400"
+                      : "bg-blue-600 text-white hover:bg-blue-500"
                   }`}
                 >
                   {isCurrent
                     ? "Current plan"
                     : sub
                       ? `Switch to ${plan.name}`
-                      : `Start free trial`}
+                      : "Start free trial"}
                 </button>
               </div>
             );
