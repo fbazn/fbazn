@@ -3,61 +3,27 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-type NewSourcingItem = {
-  asin: string;
-  title: string;
-  marketplace: string;
-  supplier_name?: string;
-  supplier_url?: string;
-  supplier_cost?: number;
-  buy_box_price?: number;
-  fees?: number;
-  est_profit?: number;
-  roi_pct?: number;
-  rank_text?: string;
-  tags?: string;
-  notes?: string;
-  image_url?: string;
-};
-
-export async function createSourcingItem(item: NewSourcingItem) {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "Not authenticated" };
-
-  const { error } = await supabase.from("sourcing_items").insert({
-    ...item,
-    user_id: authData.user.id,
-    status: "review",
-  });
-
-  if (error) {
-    console.error("Failed to create sourcing item", error);
-    return { error: error.message };
-  }
-
-  revalidatePath("/");
-  revalidatePath("/review-queue");
-  revalidatePath("/sourcing");
-  return { error: null };
-}
-
-type SourcingItemUpdate = {
+type ProductUpdate = {
   supplier_name?: string;
   supplier_url?: string;
   supplier_cost?: number | null;
   notes?: string;
-  tags?: string;
 };
 
-export async function updateProduct(id: string, fields: SourcingItemUpdate) {
+/** Update editable fields on a live product (review_queue row) */
+export async function updateProduct(id: string, fields: ProductUpdate) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { error: "Not authenticated" };
 
   const { error } = await supabase
-    .from("sourcing_items")
-    .update({ ...fields, updated_at: new Date().toISOString() })
+    .from("review_queue")
+    .update({
+      supplier_name: fields.supplier_name,
+      supplier_cost: fields.supplier_cost,
+      notes: fields.notes,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .eq("user_id", auth.user.id);
 
@@ -70,14 +36,15 @@ export async function updateProduct(id: string, fields: SourcingItemUpdate) {
   return { success: true };
 }
 
+/** Move a live product to the archived state */
 export async function archiveProduct(id: string) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { error: "Not authenticated" };
 
   const { error } = await supabase
-    .from("sourcing_items")
-    .update({ status: "archived", updated_at: new Date().toISOString() })
+    .from("review_queue")
+    .update({ archived: true, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", auth.user.id);
 
@@ -91,14 +58,15 @@ export async function archiveProduct(id: string) {
   return { success: true };
 }
 
+/** Restore an archived product back to the sourcing list */
 export async function restoreProduct(id: string) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { error: "Not authenticated" };
 
   const { error } = await supabase
-    .from("sourcing_items")
-    .update({ status: "in_progress", updated_at: new Date().toISOString() })
+    .from("review_queue")
+    .update({ archived: false, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("user_id", auth.user.id);
 
@@ -112,13 +80,14 @@ export async function restoreProduct(id: string) {
   return { success: true };
 }
 
+/** Permanently delete a product */
 export async function deleteProduct(id: string) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { error: "Not authenticated" };
 
   const { error } = await supabase
-    .from("sourcing_items")
+    .from("review_queue")
     .delete()
     .eq("id", id)
     .eq("user_id", auth.user.id);
@@ -131,26 +100,4 @@ export async function deleteProduct(id: string) {
   revalidatePath("/sourcing");
   revalidatePath("/archived");
   return { success: true };
-}
-
-// Legacy helpers kept for compatibility
-export async function updateSourcingItem(id: string, patch: SourcingItemUpdate) {
-  return updateProduct(id, patch);
-}
-
-export async function setSourcingStatus(
-  id: string,
-  status: "review" | "saved" | "rejected" | "in_progress" | "archived",
-) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("sourcing_items")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) { console.error("Failed to update sourcing status", error); }
-
-  revalidatePath("/");
-  revalidatePath("/sourcing");
-  revalidatePath("/archived");
 }

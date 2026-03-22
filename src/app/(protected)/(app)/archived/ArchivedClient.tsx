@@ -174,13 +174,13 @@ export default function ArchivedClient({ initialItems }: Props) {
                     </td>
 
                     {/* Net profit */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] opacity-60 ${profitColour(item.est_profit)}`}>
-                      {gbp(item.est_profit)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] opacity-60 ${profitColour(item.net_profit)}`}>
+                      {gbp(item.net_profit)}
                     </td>
 
                     {/* ROI */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] opacity-60 ${profitColour(item.roi_pct)}`}>
-                      {pct(item.roi_pct)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] opacity-60 ${profitColour(item.roi)}`}>
+                      {pct(item.roi)}
                     </td>
 
                     {/* Archived date */}

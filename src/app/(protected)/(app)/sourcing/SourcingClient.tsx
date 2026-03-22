@@ -56,13 +56,12 @@ function ProductPanel({
 }: {
   item: SourcingItemRow;
   onClose: () => void;
-  onUpdate: (id: string, fields: { supplier_name?: string; supplier_url?: string; supplier_cost?: number | null; notes?: string }) => Promise<void>;
+  onUpdate: (id: string, fields: { supplier_name?: string; supplier_cost?: number | null; notes?: string }) => Promise<void>;
   onArchive: (id: string) => Promise<void>;
 }) {
   const [supplierName, setSupplierName] = useState(item.supplier_name ?? "");
-  const [supplierUrl, setSupplierUrl] = useState(item.supplier_url ?? "");
   const [supplierCost, setSupplierCost] = useState(
-    item.supplier_cost != null ? String(item.supplier_cost) : "",
+    item.cost_price != null ? String(item.cost_price) : "",
   );
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -73,7 +72,6 @@ function ProductPanel({
     try {
       await onUpdate(item.id, {
         supplier_name: supplierName || undefined,
-        supplier_url: supplierUrl || undefined,
         supplier_cost: supplierCost !== "" ? parseFloat(supplierCost) : null,
         notes: notes || undefined,
       });
@@ -171,9 +169,9 @@ function ProductPanel({
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: "Buy Box", value: gbp(item.buy_box_price) },
-                { label: "Supplier Cost", value: gbp(item.supplier_cost) },
-                { label: "Total Fees", value: gbp(item.fees) },
-                { label: "Marketplace", value: item.marketplace || "UK" },
+                { label: "Supplier Cost", value: gbp(item.cost_price) },
+                { label: "Ref Fee", value: gbp(item.referral_fee) },
+                { label: "FBA Fee", value: gbp(item.fba_fee) },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2.5 text-center">
                   <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
@@ -183,8 +181,8 @@ function ProductPanel({
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {[
-                { label: "Net Profit", value: gbp(item.est_profit), colour: profitColour(item.est_profit) },
-                { label: "ROI", value: pct(item.roi_pct), colour: profitColour(item.roi_pct) },
+                { label: "Net Profit", value: gbp(item.net_profit), colour: profitColour(item.net_profit) },
+                { label: "ROI", value: pct(item.roi), colour: profitColour(item.roi) },
               ].map(({ label, value, colour }) => (
                 <div key={label} className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2.5 text-center">
                   <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
@@ -212,16 +210,19 @@ function ProductPanel({
                     className={inputCls}
                   />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Product URL</label>
-                  <input
-                    type="url"
-                    value={supplierUrl}
-                    onChange={(e) => setSupplierUrl(e.target.value)}
-                    placeholder="https://supplier.com/product"
-                    className={inputCls}
-                  />
-                </div>
+                {item.supplier_product_url && (
+                  <div>
+                    <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Product URL</label>
+                    <a
+                      href={item.supplier_product_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block truncate text-xs text-blue-400 hover:text-blue-300 transition"
+                    >
+                      {item.supplier_product_url} ↗
+                    </a>
+                  </div>
+                )}
                 <div>
                   <label className="mb-1 block text-xs text-[rgb(var(--muted))]">Supplier cost (£)</label>
                   <input
@@ -253,19 +254,19 @@ function ProductPanel({
               />
             </div>
 
-            {/* Rank / tags (read-only info) */}
-            {(item.rank_text || item.tags) && (
+            {/* Category / size tier (read-only info) */}
+            {(item.category || item.size_tier) && (
               <div className="grid grid-cols-2 gap-3">
-                {item.rank_text && (
+                {item.category && (
                   <div className="rounded-lg bg-[rgb(var(--panel))] border border-[rgb(var(--border))] px-3 py-2.5">
-                    <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Sales Rank</p>
-                    <p className="mt-0.5 text-xs text-[rgb(var(--text))]">{item.rank_text}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Category</p>
+                    <p className="mt-0.5 text-xs text-[rgb(var(--text))] truncate">{item.category}</p>
                   </div>
                 )}
-                {item.tags && (
+                {item.size_tier && (
                   <div className="rounded-lg bg-[rgb(var(--panel))] border border-[rgb(var(--border))] px-3 py-2.5">
-                    <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Tags</p>
-                    <p className="mt-0.5 text-xs text-[rgb(var(--text))] truncate">{item.tags}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">Size Tier</p>
+                    <p className="mt-0.5 text-xs text-[rgb(var(--text))]">{item.size_tier}</p>
                   </div>
                 )}
               </div>
@@ -323,7 +324,7 @@ export default function SourcingClient({ initialItems }: Props) {
 
   async function handleUpdate(
     id: string,
-    fields: { supplier_name?: string; supplier_url?: string; supplier_cost?: number | null; notes?: string },
+    fields: { supplier_name?: string; supplier_cost?: number | null; notes?: string },
   ) {
     setOptimistic({ type: "update", id, fields });
     const res = await updateProduct(id, fields);
@@ -444,17 +445,17 @@ export default function SourcingClient({ initialItems }: Props) {
 
                     {/* Cost */}
                     <td className="px-3 py-2.5 text-right font-mono text-[13px] text-[rgb(var(--muted))]">
-                      {gbp(item.supplier_cost)}
+                      {gbp(item.cost_price)}
                     </td>
 
                     {/* Net profit */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.est_profit)}`}>
-                      {gbp(item.est_profit)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.net_profit)}`}>
+                      {gbp(item.net_profit)}
                     </td>
 
                     {/* ROI */}
-                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.roi_pct)}`}>
-                      {pct(item.roi_pct)}
+                    <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.roi)}`}>
+                      {pct(item.roi)}
                     </td>
 
                     {/* Added */}

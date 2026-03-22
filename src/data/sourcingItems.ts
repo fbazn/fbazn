@@ -1,65 +1,62 @@
 import { createClient } from "@/lib/supabase/server";
 
+// Mirrors the review_queue table columns used by Sourcing List + Archived pages
 export type SourcingItemRow = {
   id: string;
   user_id: string;
   asin: string;
-  title: string;
-  marketplace: string;
-  supplier_name: string | null;
-  supplier_url: string | null;
-  supplier_cost: number | null;
-  buy_box_price: number | null;
-  fees: number | null;
-  est_profit: number | null;
-  roi_pct: number | null;
-  rank_text: string | null;
-  tags: string | null;
-  notes: string | null;
+  title: string | null;
   image_url: string | null;
-  status: "review" | "saved" | "rejected" | "in_progress" | "archived";
+  category: string | null;
+  size_tier: string | null;
+  buy_box_price: number | null;
+  cost_price: number | null;
+  referral_fee: number | null;
+  fba_fee: number | null;
+  net_profit: number | null;
+  roi: number | null;
+  margin: number | null;
+  supplier_name: string | null;
+  supplier_product_url: string | null;
+  supplier_sku: string | null;
+  supplier_cost: number | null;
+  notes: string | null;
+  status: string;
+  live_product: boolean;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 };
 
 const baseSelect = [
-  "id", "user_id", "asin", "title", "marketplace",
-  "supplier_name", "supplier_url", "supplier_cost",
-  "buy_box_price", "fees", "est_profit", "roi_pct",
-  "rank_text", "tags", "notes", "image_url",
-  "status", "created_at", "updated_at",
+  "id", "user_id", "asin", "title", "image_url", "category", "size_tier",
+  "buy_box_price", "cost_price", "referral_fee", "fba_fee",
+  "net_profit", "roi", "margin",
+  "supplier_name", "supplier_product_url", "supplier_sku", "supplier_cost",
+  "notes", "status", "live_product", "archived", "created_at", "updated_at",
 ].join(", ");
 
-export async function getReviewQueueRows(): Promise<SourcingItemRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("sourcing_items")
-    .select(baseSelect)
-    .eq("status", "review")
-    .order("created_at", { ascending: false })
-    .returns<SourcingItemRow[]>();
-  if (error) { console.error("Failed to load review queue rows", error); throw error; }
-  return data ?? [];
-}
-
+/** Items in the review queue (not yet converted, not archived) */
 export async function getReviewQueueCount(): Promise<number> {
   const supabase = await createClient();
   const { count, error } = await supabase
     .from("review_queue")
     .select("id", { count: "exact", head: true })
-    .not("status", "eq", "ordered");
+    .eq("live_product", false)
+    .eq("archived", false);
   if (error) { console.error("Failed to load review queue count", error); return 0; }
   return count ?? 0;
 }
 
-/** Active converted products (in_progress) — shown on Sourcing List */
+/** Active converted products — shown on Sourcing List */
 export async function getActiveProducts(): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("sourcing_items")
+    .from("review_queue")
     .select(baseSelect)
-    .eq("status", "in_progress")
-    .order("created_at", { ascending: false })
+    .eq("live_product", true)
+    .eq("archived", false)
+    .order("updated_at", { ascending: false })
     .returns<SourcingItemRow[]>();
   if (error) { console.error("Failed to load active products", error); throw error; }
   return data ?? [];
@@ -69,34 +66,11 @@ export async function getActiveProducts(): Promise<SourcingItemRow[]> {
 export async function getArchivedProducts(): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("sourcing_items")
+    .from("review_queue")
     .select(baseSelect)
-    .eq("status", "archived")
+    .eq("archived", true)
     .order("updated_at", { ascending: false })
     .returns<SourcingItemRow[]>();
   if (error) { console.error("Failed to load archived products", error); throw error; }
-  return data ?? [];
-}
-
-export async function getSourcingRows(): Promise<SourcingItemRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("sourcing_items")
-    .select(baseSelect)
-    .order("created_at", { ascending: false })
-    .returns<SourcingItemRow[]>();
-  if (error) { console.error("Failed to load sourcing rows", error); throw error; }
-  return data ?? [];
-}
-
-export async function getRecentRows(limit = 8): Promise<SourcingItemRow[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("sourcing_items")
-    .select(baseSelect)
-    .order("updated_at", { ascending: false })
-    .limit(limit)
-    .returns<SourcingItemRow[]>();
-  if (error) { console.error("Failed to load recent rows", error); throw error; }
   return data ?? [];
 }

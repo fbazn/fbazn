@@ -20,7 +20,8 @@ export default async function ReviewQueuePage() {
            supplier:suppliers ( id, name, website, notes )
          )`,
       )
-      .not("status", "eq", "ordered")
+      .eq("live_product", false)
+      .eq("archived", false)
       .order("created_at", { ascending: false })
       .returns<QueueRow[]>(),
     getSuppliers(),
