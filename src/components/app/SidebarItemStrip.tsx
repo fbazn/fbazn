@@ -2,7 +2,7 @@
 
 import type { MockItem } from "@/lib/mockData";
 import { Tooltip } from "./Tooltip";
-import { useDetailsDrawer } from "./AppShell";
+import Link from "next/link";
 
 type SidebarItemStripProps = {
   isExpanded: boolean;
@@ -10,8 +10,6 @@ type SidebarItemStripProps = {
 };
 
 export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
-  const { openDrawer } = useDetailsDrawer();
-
   return (
     <div className="space-y-2">
       {isExpanded && (
@@ -40,10 +38,9 @@ export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
                 </div>
               }
             >
-              <button
-                type="button"
-                onClick={() => openDrawer(item)}
-                className="relative h-12 w-12 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-xs font-semibold text-[rgb(var(--text))] transition hover:border-[rgb(var(--border-subtle))]"
+              <Link
+                href="/sourcing"
+                className="relative flex h-12 w-12 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-xs font-semibold text-[rgb(var(--text))] transition hover:border-[rgb(var(--border-subtle))]"
               >
                 {item.imageUrl ? (
                   <img
@@ -56,7 +53,7 @@ export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
                     {initials}
                   </span>
                 )}
-              </button>
+              </Link>
             </Tooltip>
           );
         })}

@@ -20,6 +20,7 @@ export type SourcingItemRow = {
   supplier_product_url: string | null;
   supplier_sku: string | null;
   supplier_cost: number | null;
+  marketplace: string;
   notes: string | null;
   status: string;
   live_product: boolean;
@@ -33,7 +34,7 @@ const baseSelect = [
   "buy_box_price", "cost_price", "referral_fee", "fba_fee",
   "net_profit", "roi", "margin",
   "supplier_name", "supplier_product_url", "supplier_sku", "supplier_cost",
-  "notes", "status", "live_product", "archived", "created_at", "updated_at",
+  "marketplace", "notes", "status", "live_product", "archived", "created_at", "updated_at",
 ].join(", ");
 
 /** Items in the review queue (not yet converted, not archived) */

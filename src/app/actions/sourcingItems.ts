@@ -80,8 +80,7 @@ export async function restoreProduct(id: string) {
   return { success: true };
 }
 
-// ── Legacy compatibility exports ─────────────────────────────────────────────
-// AddLeadModal and DetailsDrawer still import these names.
+// ── Compatibility exports ─────────────────────────────────────────────────────
 
 /** Manually add a lead directly into the review queue */
 export async function createSourcingItem(item: {
@@ -107,6 +106,7 @@ export async function createSourcingItem(item: {
     user_id: auth.user.id,
     asin: item.asin,
     title: item.title,
+    marketplace: item.marketplace ?? "UK",
     supplier_name: item.supplier_name ?? null,
     supplier_product_url: item.supplier_url ?? null,
     cost_price: item.supplier_cost ?? null,

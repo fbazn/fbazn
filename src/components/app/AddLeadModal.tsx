@@ -7,18 +7,19 @@ import { createSourcingItem } from "@/app/actions/sourcingItems";
 
 type Props = {
   onClose: () => void;
+  defaultMarketplace: string;
 };
 
 const MARKETPLACES = ["UK", "US", "DE", "FR", "IT", "ES", "CA", "AU"];
 
-export function AddLeadModal({ onClose }: Props) {
+export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [asin, setAsin] = useState("");
   const [title, setTitle] = useState("");
-  const [marketplace, setMarketplace] = useState("UK");
+  const [marketplace, setMarketplace] = useState(defaultMarketplace);
   const [supplierName, setSupplierName] = useState("");
   const [supplierUrl, setSupplierUrl] = useState("");
   const [supplierCost, setSupplierCost] = useState("");

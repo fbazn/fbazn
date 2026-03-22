@@ -26,7 +26,19 @@ interface Results {
   margin: number;
 }
 
+const MARKETPLACE_CURRENCY: Record<string, { code: string; locale: string }> = {
+  UK: { code: "GBP", locale: "en-GB" },
+  US: { code: "USD", locale: "en-US" },
+  DE: { code: "EUR", locale: "de-DE" },
+  FR: { code: "EUR", locale: "fr-FR" },
+  IT: { code: "EUR", locale: "it-IT" },
+  ES: { code: "EUR", locale: "es-ES" },
+  CA: { code: "CAD", locale: "en-CA" },
+  AU: { code: "AUD", locale: "en-AU" },
+};
+
 export default function FbaCalculatorPage() {
+  const [marketplace, setMarketplace] = useState("UK");
   const [referralFees, setReferralFees] = useState<ReferralFee[]>([]);
   const [fulfillmentFees, setFulfillmentFees] = useState<FulfillmentFee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,22 +52,34 @@ export default function FbaCalculatorPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase
-        .from("fba_referral_fees")
-        .select("category, referral_fee_pct, min_referral_fee")
-        .eq("marketplace", "UK")
-        .order("category"),
-      supabase
-        .from("fba_fulfillment_fees")
-        .select("size_tier, description, fee, sort_order")
-        .eq("marketplace", "UK")
-        .order("sort_order"),
-    ]).then(([referralRes, fulfillmentRes]) => {
-      if (referralRes.data) setReferralFees(referralRes.data);
-      if (fulfillmentRes.data) setFulfillmentFees(fulfillmentRes.data);
-      setLoading(false);
-    });
+
+    // Try to load the user's preferred marketplace; fall back to UK for unauthenticated users
+    supabase
+      .from("user_settings")
+      .select("default_marketplace")
+      .maybeSingle()
+      .then(({ data }) => {
+        const mp = data?.default_marketplace ?? "UK";
+        setMarketplace(mp);
+
+        // Fetch fee tables for the resolved marketplace
+        Promise.all([
+          supabase
+            .from("fba_referral_fees")
+            .select("category, referral_fee_pct, min_referral_fee")
+            .eq("marketplace", mp)
+            .order("category"),
+          supabase
+            .from("fba_fulfillment_fees")
+            .select("size_tier, description, fee, sort_order")
+            .eq("marketplace", mp)
+            .order("sort_order"),
+        ]).then(([referralRes, fulfillmentRes]) => {
+          if (referralRes.data) setReferralFees(referralRes.data);
+          if (fulfillmentRes.data) setFulfillmentFees(fulfillmentRes.data);
+          setLoading(false);
+        });
+      });
   }, []);
 
   const calculate = useCallback(() => {
@@ -84,8 +108,11 @@ export default function FbaCalculatorPage() {
     calculate();
   }, [calculate]);
 
+  const { code: currencyCode, locale: currencyLocale } =
+    MARKETPLACE_CURRENCY[marketplace] ?? MARKETPLACE_CURRENCY.UK;
+
   const fmt = (n: number) =>
-    n.toLocaleString("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 });
+    n.toLocaleString(currencyLocale, { style: "currency", currency: currencyCode, minimumFractionDigits: 2 });
 
   const pct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -110,7 +137,7 @@ export default function FbaCalculatorPage() {
           <p className="text-sm font-semibold text-indigo-500">FBAZN</p>
           <h1 className="mt-1 text-3xl font-bold text-[rgb(var(--text))]">FBA Profit Calculator</h1>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            UK marketplace · Fees sourced from Amazon&apos;s 2025 schedule
+            {marketplace} marketplace · Fees sourced from Amazon&apos;s 2025 schedule
           </p>
         </div>
 
@@ -125,11 +152,8 @@ export default function FbaCalculatorPage() {
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5 text-sm font-medium text-[rgb(var(--text))]">
-                  Buy Box Price (£)
+                  Buy Box Price ({currencyCode})
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgb(var(--muted))]">
-                      £
-                    </span>
                     <input
                       type="number"
                       min="0"
@@ -137,17 +161,14 @@ export default function FbaCalculatorPage() {
                       value={buyBoxPrice}
                       onChange={(e) => setBuyBoxPrice(e.target.value)}
                       placeholder="0.00"
-                      className="h-11 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] pl-7 pr-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="h-11 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </label>
 
                 <label className="flex flex-col gap-1.5 text-sm font-medium text-[rgb(var(--text))]">
-                  Supplier Cost (£)
+                  Supplier Cost ({currencyCode})
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[rgb(var(--muted))]">
-                      £
-                    </span>
                     <input
                       type="number"
                       min="0"
@@ -155,7 +176,7 @@ export default function FbaCalculatorPage() {
                       value={supplierCost}
                       onChange={(e) => setSupplierCost(e.target.value)}
                       placeholder="0.00"
-                      className="h-11 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] pl-7 pr-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="h-11 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </label>
@@ -238,7 +259,7 @@ export default function FbaCalculatorPage() {
             )}
 
             <p className="text-center text-xs text-[rgb(var(--muted))]">
-              Fees are approximate and based on Amazon UK&apos;s 2025 schedule. Always verify against your
+              Fees are approximate and based on Amazon&apos;s 2025 schedule. Always verify against your
               Seller Central account before making sourcing decisions.
             </p>
           </div>

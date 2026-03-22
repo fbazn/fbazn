@@ -3,15 +3,17 @@ import type { ReactNode } from "react";
 import { getRecentRows, getReviewQueueCount } from "@/data/sourcingItems";
 import { toMockItem } from "@/data/adapters";
 import { createClient } from "@/lib/supabase/server";
+import { getOrCreateUserSettings } from "@/data/userSettings";
 
 export default async function AppLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const supabase = await createClient();
-  const [{ data: authData }, recentRows, reviewQueueCount] = await Promise.all([
+  const [{ data: authData }, recentRows, reviewQueueCount, userSettings] = await Promise.all([
     supabase.auth.getUser(),
     getRecentRows(),
     getReviewQueueCount(),
+    getOrCreateUserSettings().catch(() => null),
   ]);
   const recentItems = recentRows.map(toMockItem);
 
@@ -32,6 +34,7 @@ export default async function AppLayout({
       recentItems={recentItems}
       initialReviewQueueCount={reviewQueueCount}
       user={user}
+      defaultMarketplace={userSettings?.default_marketplace ?? "UK"}
     >
       {children}
     </AppShell>
