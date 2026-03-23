@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { ProductSupplier } from "@/app/actions/suppliers";
 
 // Mirrors the review_queue table columns used by Sourcing List + Archived pages
 export type SourcingItemRow = {
@@ -27,15 +28,20 @@ export type SourcingItemRow = {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  review_queue_suppliers: ProductSupplier[];
 };
 
-const baseSelect = [
-  "id", "user_id", "asin", "title", "image_url", "category", "size_tier",
-  "buy_box_price", "cost_price", "referral_fee", "fba_fee",
-  "net_profit", "roi", "margin",
-  "supplier_name", "supplier_product_url", "supplier_sku", "supplier_cost",
-  "marketplace", "notes", "status", "live_product", "archived", "created_at", "updated_at",
-].join(", ");
+const baseSelect = `
+  id, user_id, asin, title, image_url, category, size_tier,
+  buy_box_price, cost_price, referral_fee, fba_fee,
+  net_profit, roi, margin,
+  supplier_name, supplier_product_url, supplier_sku, supplier_cost,
+  marketplace, notes, status, live_product, archived, created_at, updated_at,
+  review_queue_suppliers (
+    id, supplier_id, supplier_sku, cost_price, created_at,
+    supplier:suppliers ( id, name, website, notes )
+  )
+`;
 
 /** Items in the review queue (not yet converted, not archived) */
 export async function getReviewQueueCount(): Promise<number> {

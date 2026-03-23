@@ -125,6 +125,7 @@ export async function addProductSupplier(fields: {
   await _syncCheapestCost(supabase, fields.queue_item_id, auth.user.id);
 
   revalidatePath("/review-queue");
+  revalidatePath("/sourcing");
   revalidatePath("/suppliers");
   return { success: true, productSupplier: data as unknown as ProductSupplier };
 }
@@ -175,6 +176,7 @@ export async function removeProductSupplier(id: string, queueItemId: string) {
   await _syncCheapestCost(supabase, queueItemId, auth.user.id);
 
   revalidatePath("/review-queue");
+  revalidatePath("/sourcing");
   revalidatePath("/suppliers");
   return { success: true };
 }
