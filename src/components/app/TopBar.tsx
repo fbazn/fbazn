@@ -116,6 +116,7 @@ export function TopBar({ onOpenMobileMenu, onOpenAddLead, user }: TopBarProps) {
       <div className="ml-auto flex items-center gap-2">
         {/* Add lead */}
         <button
+          id="tour-add-lead"
           type="button"
           onClick={onOpenAddLead}
           className="hidden items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 md:flex"

@@ -40,7 +40,7 @@ const secondaryItems = [
     disabled: true,
   },
   { label: "Billing", href: "/billing", icon: CreditCard },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Settings", href: "/settings", icon: Settings, id: "tour-settings" },
   { label: "Help", href: "/help", icon: HelpCircle },
 ];
 
@@ -63,16 +63,17 @@ export function Sidebar({
   const { reviewQueueCount } = useReviewQueue();
 
   const primaryItems = [
-    { label: "Dashboard", href: "/", icon: LayoutDashboard },
+    { label: "Dashboard", href: "/", icon: LayoutDashboard, id: "tour-dashboard" },
     {
       label: "Review Queue",
       href: "/review-queue",
       icon: ClipboardList,
       badge: reviewQueueCount > 0 ? `${reviewQueueCount}` : undefined,
+      id: "tour-review-queue",
     },
-    { label: "Sourcing List", href: "/sourcing", icon: List },
+    { label: "Sourcing List", href: "/sourcing", icon: List, id: "tour-sourcing" },
     { label: "ASIN Lookup", href: "/asin", icon: Search },
-    { label: "Suppliers", href: "/suppliers", icon: Building2 },
+    { label: "Suppliers", href: "/suppliers", icon: Building2, id: "tour-suppliers" },
     { label: "Archived", href: "/archived", icon: Archive },
     { label: "Alerts", href: "/alerts", icon: Bell },
   ];

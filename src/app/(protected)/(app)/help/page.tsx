@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RelaunchTourButton } from "./RelaunchTourButton";
 
 const guides = [
   {
@@ -92,6 +93,8 @@ export default function HelpPage() {
             Everything you need to get the most out of FBAZN.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <RelaunchTourButton />
         <a
           href="mailto:support@fbazn.com"
           className="inline-flex items-center gap-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] px-4 py-2 text-sm text-[rgb(var(--muted))] transition hover:text-[rgb(var(--text))]"
@@ -102,6 +105,7 @@ export default function HelpPage() {
           </svg>
           Contact support
         </a>
+        </div>
       </div>
 
       {/* Getting started guide */}

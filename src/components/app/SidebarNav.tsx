@@ -11,6 +11,7 @@ type NavItem = {
   icon: LucideIcon;
   badge?: string;
   disabled?: boolean;
+  id?: string;
 };
 
 type SidebarNavProps = {
@@ -29,6 +30,7 @@ export function SidebarNav({ items, isExpanded }: SidebarNavProps) {
         return (
           <Link
             key={item.href}
+            id={item.id}
             href={item.disabled ? "#" : item.href}
             className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
               isActive

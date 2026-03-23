@@ -43,3 +43,77 @@
     box-shadow: 0 12px 32px rgb(var(--shadow));
   }
 }
+
+/* Driver.js tour — theme overrides */
+.fbazn-tour-popover.driver-popover {
+  background-color: rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--border));
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  padding: 20px 24px 16px;
+  max-width: 340px;
+}
+
+.fbazn-tour-popover .driver-popover-title {
+  color: rgb(var(--text));
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.fbazn-tour-popover .driver-popover-description {
+  color: rgb(var(--muted));
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.fbazn-tour-popover .driver-popover-footer {
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.fbazn-tour-popover .driver-popover-progress-text {
+  color: rgb(var(--muted));
+  font-size: 12px;
+}
+
+.fbazn-tour-popover .driver-popover-prev-btn,
+.fbazn-tour-popover .driver-popover-next-btn {
+  background-color: rgb(var(--card));
+  border: 1px solid rgb(var(--border));
+  color: rgb(var(--text));
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.fbazn-tour-popover .driver-popover-next-btn {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.fbazn-tour-popover .driver-popover-next-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.fbazn-tour-popover .driver-popover-prev-btn:hover {
+  background-color: rgb(var(--bg));
+}
+
+.fbazn-tour-popover .driver-popover-close-btn {
+  color: rgb(var(--muted));
+  font-size: 18px;
+}
+
+.fbazn-tour-popover .driver-popover-close-btn:hover {
+  color: rgb(var(--text));
+}
+
+.driver-overlay {
+  background: rgba(0, 0, 0, 0.6) !important;
+}

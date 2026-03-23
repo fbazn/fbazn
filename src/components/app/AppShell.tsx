@@ -7,6 +7,7 @@ import { TopBar } from "./TopBar";
 import type { MockItem } from "@/lib/mockData";
 import { ReviewQueueProvider } from "./ReviewQueueContext";
 import { AddLeadModal } from "./AddLeadModal";
+import { OnboardingTour } from "./OnboardingTour";
 
 export type AppUser = {
   id: string;
@@ -72,6 +73,8 @@ export function AppShell({
             onClose={() => setIsAddLeadOpen(false)}
           />
         )}
+
+        <OnboardingTour />
       </div>
     </ReviewQueueProvider>
   );
