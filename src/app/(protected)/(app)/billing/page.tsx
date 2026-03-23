@@ -171,18 +171,26 @@ export default function BillingPage() {
         <div className="grid gap-4 md:grid-cols-3">
           {PLANS.map((plan) => {
             const isCurrent = sub?.plan === plan.id;
+            const isComingSoon = plan.comingSoon;
             return (
               <div
                 key={plan.id}
                 className={`flex flex-col rounded-2xl border p-6 transition ${
-                  isCurrent
-                    ? "border-blue-500/40 bg-blue-500/10"
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                  isComingSoon
+                    ? "border-[rgb(var(--border))] bg-[rgb(var(--card))] opacity-50"
+                    : isCurrent
+                      ? "border-blue-500/40 bg-blue-500/10"
+                      : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-[rgb(var(--text))]">{plan.name}</h4>
-                  {isCurrent && (
+                  {isComingSoon && (
+                    <span className="rounded-full bg-[rgb(var(--panel))] border border-[rgb(var(--border))] px-2 py-0.5 text-xs font-medium text-[rgb(var(--muted))]">
+                      Coming Soon
+                    </span>
+                  )}
+                  {!isComingSoon && isCurrent && (
                     <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
                       Current
                     </span>
@@ -202,19 +210,23 @@ export default function BillingPage() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => handleCheckout(plan.id)}
-                  disabled={loading || isCurrent}
+                  onClick={() => !isComingSoon && handleCheckout(plan.id)}
+                  disabled={loading || isCurrent || isComingSoon}
                   className={`mt-6 h-10 rounded-xl text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isCurrent
-                      ? "border border-blue-500/40 text-blue-400"
-                      : "bg-blue-600 text-white hover:bg-blue-500"
+                    isComingSoon
+                      ? "border border-[rgb(var(--border))] text-[rgb(var(--muted))]"
+                      : isCurrent
+                        ? "border border-blue-500/40 text-blue-400"
+                        : "bg-blue-600 text-white hover:bg-blue-500"
                   }`}
                 >
-                  {isCurrent
-                    ? "Current plan"
-                    : sub
-                      ? `Switch to ${plan.name}`
-                      : "Start free trial"}
+                  {isComingSoon
+                    ? "Coming soon"
+                    : isCurrent
+                      ? "Current plan"
+                      : sub
+                        ? `Switch to ${plan.name}`
+                        : "Start free trial"}
                 </button>
               </div>
             );

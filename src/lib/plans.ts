@@ -7,6 +7,7 @@ export interface Plan {
   priceId: string;
   description: string;
   features: string[];
+  comingSoon: boolean;
 }
 
 export const PLANS: Plan[] = [
@@ -15,12 +16,17 @@ export const PLANS: Plan[] = [
     name: "Starter",
     price: 10,
     priceId: process.env.STRIPE_PRICE_STARTER!,
-    description: "Everything you need to start sourcing profitable products.",
+    description: "Everything you need to start sourcing profitable products on Amazon.",
+    comingSoon: false,
     features: [
-      "Full dashboard access",
-      "Lead vault",
-      "FBA profit calculator",
-      "Limited Chrome extension",
+      "Chrome Extension → Review Queue",
+      "Full Review Queue with slide-over panel",
+      "Bulk convert, archive & delete",
+      "Sourcing List & Archived Products",
+      "Suppliers directory",
+      "FBA Profit Calculator",
+      "Dashboard stats",
+      "Up to 250 products",
     ],
   },
   {
@@ -28,12 +34,17 @@ export const PLANS: Plan[] = [
     name: "Pro",
     price: 25,
     priceId: process.env.STRIPE_PRICE_PRO!,
-    description: "More data, deeper insights, and full Chrome extension.",
+    description: "Deeper data, inventory tracking, and full export for serious sellers.",
+    comingSoon: true,
     features: [
       "Everything in Starter",
-      "Full Chrome extension (sales/month data)",
-      "Keepa integration",
-      "Advanced opportunity scoring",
+      "Inventory import & dashboard (CSV + SP-API)",
+      "Inbound order tracking (supplier + Amazon)",
+      "Invoice OCR & item confirmation",
+      "Keepa price history charts",
+      "Advanced lead scoring",
+      "CSV export",
+      "Up to 1,000 products",
     ],
   },
   {
@@ -41,11 +52,15 @@ export const PLANS: Plan[] = [
     name: "Business",
     price: 49,
     priceId: process.env.STRIPE_PRICE_BUSINESS!,
-    description: "Maximum power for serious sellers and teams.",
+    description: "Maximum power for high-volume sellers and small teams.",
+    comingSoon: true,
     features: [
       "Everything in Pro",
+      "Unlimited products",
+      "Team seats (up to 5 users)",
+      "Automated lead generation",
+      "AI chat assistant",
       "API access",
-      "AI automations (coming soon)",
       "Priority support",
     ],
   },
