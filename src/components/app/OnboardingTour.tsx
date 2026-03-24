@@ -15,9 +15,8 @@ function buildTour() {
     doneBtnText: "Let's go!",
     progressText: "{{current}} of {{total}}",
     popoverClass: "fbazn-tour-popover",
-    onDestroyStarted: () => {
+    onDestroyed: () => {
       localStorage.setItem(STORAGE_KEY, "1");
-      return true;
     },
     steps: [
       {
