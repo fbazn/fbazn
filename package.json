@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.45.0",
     "@stripe/stripe-js": "^8.9.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "file:vendor/supabase-ssr",
@@ -17,6 +18,7 @@
     "driver.js": "^1.4.0",
     "lucide-react": "^0.488.0",
     "next": "15.3.8",
+    "posthog-js": "^1.363.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^20.4.1"
