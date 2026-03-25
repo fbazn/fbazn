@@ -78,6 +78,60 @@ export async function enrichQueueItem(id: string, fields: EnrichFields) {
   return { success: true };
 }
 
+// ── Bulk actions ───────────────────────────────────────────────────────────
+
+export async function bulkDeleteQueueItems(ids: string[]) {
+  if (!ids.length) return { success: true };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("review_queue")
+    .delete()
+    .in("id", ids)
+    .eq("user_id", auth.user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/review-queue");
+  return { success: true };
+}
+
+export async function bulkConvertToProduct(ids: string[]) {
+  if (!ids.length) return { success: true };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("review_queue")
+    .update({ live_product: true, updated_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("user_id", auth.user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/review-queue");
+  revalidatePath("/sourcing");
+  return { success: true };
+}
+
+export async function bulkUpdateQueueStatus(ids: string[], status: QueueStatus) {
+  if (!ids.length) return { success: true };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("review_queue")
+    .update({ status, updated_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("user_id", auth.user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/review-queue");
+  return { success: true };
+}
+
 // Converts a review_queue item into a live product by flipping live_product = true.
 // The item stays in review_queue but is now shown in the Sourcing List instead.
 export async function convertToProduct(id: string) {

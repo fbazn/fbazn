@@ -13,6 +13,9 @@ import {
   deleteQueueItem,
   enrichQueueItem,
   convertToProduct,
+  bulkDeleteQueueItems,
+  bulkConvertToProduct,
+  bulkUpdateQueueStatus,
   type QueueStatus,
 } from "@/app/actions/reviewQueue";
 import {
@@ -844,6 +847,8 @@ type Props = {
 export default function ReviewQueueClient({ initialItems, allSuppliers }: Props) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, setBulkPending] = useState(false);
 
   const [items, setOptimisticItems] = useOptimistic(
     initialItems,
@@ -899,6 +904,59 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
     setOptimisticItems({ type: "status", id, status: "ordered" });
   }
 
+  // ── Bulk helpers ──────────────────────────────────────────────────────────
+
+  const allSelected = items.length > 0 && items.every((i) => selectedIds.has(i.id));
+  const someSelected = !allSelected && items.some((i) => selectedIds.has(i.id));
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+  }
+
+  function toggleSelectOne(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (!confirm(`Delete ${ids.length} item${ids.length > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    setBulkPending(true);
+    startTransition(async () => {
+      ids.forEach((id) => setOptimisticItems({ type: "delete", id }));
+      await bulkDeleteQueueItems(ids);
+      setSelectedIds(new Set());
+      setBulkPending(false);
+    });
+  }
+
+  async function handleBulkConvert() {
+    const ids = [...selectedIds];
+    if (!confirm(`Convert ${ids.length} item${ids.length > 1 ? "s" : ""} to products?`)) return;
+    setBulkPending(true);
+    startTransition(async () => {
+      ids.forEach((id) => setOptimisticItems({ type: "status", id, status: "ordered" }));
+      await bulkConvertToProduct(ids);
+      setSelectedIds(new Set());
+      setBulkPending(false);
+    });
+  }
+
+  async function handleBulkStatus(status: QueueStatus) {
+    const ids = [...selectedIds];
+    setBulkPending(true);
+    startTransition(async () => {
+      ids.forEach((id) => setOptimisticItems({ type: "status", id, status }));
+      await bulkUpdateQueueStatus(ids, status);
+      setSelectedIds(new Set());
+      setBulkPending(false);
+    });
+  }
+
   return (
     <div className="space-y-5">
 
@@ -923,7 +981,16 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead>
               <tr className="border-b border-[rgb(var(--border))] bg-[rgb(var(--panel))]/60">
-                <th className="px-3 py-3 pl-4 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Item</th>
+                <th className="w-10 pl-4 pr-2 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                    onChange={toggleSelectAll}
+                    className="cursor-pointer accent-blue-500 rounded"
+                  />
+                </th>
+                <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Item</th>
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Category</th>
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Size Tier</th>
                 <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Buy Box</th>
@@ -939,7 +1006,7 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-20 text-center">
+                  <td colSpan={11} className="px-4 py-20 text-center">
                     <div className="flex flex-col items-center gap-2.5">
                       <span className="text-4xl">📦</span>
                       <span className="font-semibold text-[rgb(var(--text))]">Your queue is empty</span>
@@ -962,14 +1029,27 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
                     key={item.id}
                     onClick={() => setActiveId(isActive ? null : item.id)}
                     className={`group cursor-pointer transition-colors ${
-                      isActive
+                      selectedIds.has(item.id)
+                        ? "bg-blue-500/[0.05]"
+                        : isActive
                         ? "bg-blue-500/[0.07] ring-1 ring-inset ring-blue-500/20"
                         : "hover:bg-[rgb(var(--panel))]/60"
                     }`}
                     style={{ opacity: isPending ? 0.65 : 1 }}
                   >
+                    {/* Checkbox */}
+                    <td className="w-10 pl-4 pr-2 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => {}}
+                        onClick={(e) => toggleSelectOne(item.id, e)}
+                        className="cursor-pointer accent-blue-500 rounded"
+                      />
+                    </td>
+
                     {/* Item */}
-                    <td className="px-3 py-2.5 pl-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-[rgb(var(--panel))] ring-1 ring-[rgb(var(--border))]">
                           {item.image_url ? (
@@ -1097,6 +1177,54 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
           onEnrich={handleEnrich}
           onConvert={handleConvert}
         />
+      )}
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-5 py-3 shadow-2xl shadow-black/50">
+          <span className="text-sm font-semibold text-[rgb(var(--text))] whitespace-nowrap">
+            {selectedIds.size} selected
+          </span>
+          <div className="h-4 w-px bg-[rgb(var(--border))]" />
+          <button
+            onClick={handleBulkConvert}
+            disabled={bulkPending}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:opacity-60"
+          >
+            ⚡ Convert to Product
+          </button>
+          <select
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) handleBulkStatus(e.target.value as QueueStatus);
+              e.target.value = "";
+            }}
+            disabled={bulkPending}
+            className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] px-3 py-1.5 text-xs text-[rgb(var(--text))] cursor-pointer focus:outline-none transition hover:bg-[rgb(var(--card))]"
+          >
+            <option value="" disabled>Set status…</option>
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkPending}
+            className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-400 transition hover:bg-rose-500/20 disabled:opacity-60"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            title="Clear selection"
+            className="rounded-lg border border-[rgb(var(--border))] p-1.5 text-[rgb(var(--muted))] transition hover:bg-[rgb(var(--panel))]"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   );

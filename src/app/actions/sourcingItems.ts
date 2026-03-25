@@ -140,6 +140,43 @@ export async function setSourcingStatus(id: string, _status: string) {
   return archiveProduct(id);
 }
 
+/** Archive multiple products at once */
+export async function bulkArchiveProducts(ids: string[]) {
+  if (!ids.length) return { success: true };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("review_queue")
+    .update({ archived: true, updated_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("user_id", auth.user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/sourcing");
+  revalidatePath("/archived");
+  return { success: true };
+}
+
+/** Permanently delete multiple products */
+export async function bulkDeleteProducts(ids: string[]) {
+  if (!ids.length) return { success: true };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("review_queue")
+    .delete()
+    .in("id", ids)
+    .eq("user_id", auth.user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/sourcing");
+  return { success: true };
+}
+
 /** Permanently delete a product */
 export async function deleteProduct(id: string) {
   const supabase = await createClient();
