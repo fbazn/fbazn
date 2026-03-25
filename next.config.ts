@@ -8,16 +8,7 @@ const nextConfig: NextConfig = {
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-
   silent: !process.env.CI,
-
   widenClientFileUpload: true,
-
-  // Updated: replaces deprecated reactComponentAnnotation option
-  webpack: {
-    reactComponentAnnotation: { enabled: true },
-    treeshake: { removeDebugLogging: true },
-  },
-
   hideSourceMaps: true,
 });

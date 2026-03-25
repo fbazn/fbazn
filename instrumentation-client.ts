@@ -22,3 +22,6 @@ Sentry.init({
   // Don't print debug info in production
   debug: false,
 });
+
+// Required for Sentry to instrument client-side navigations
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
