@@ -5,6 +5,20 @@ import { PostHogProvider as PHProvider, usePostHog } from "posthog-js/react";
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+// Initialise at module level so it's ready before any component mounts.
+// The typeof window guard prevents this running during SSR.
+if (typeof window !== "undefined") {
+  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  if (key) {
+    posthog.init(key, {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com",
+      person_profiles: "identified_only",
+      capture_pageview: false, // manual — tracked by PostHogPageView below
+      capture_pageleave: true,
+    });
+  }
+}
+
 function PostHogPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -22,17 +36,6 @@ function PostHogPageView() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    if (!key) return;
-    posthog.init(key, {
-      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com",
-      person_profiles: "identified_only",
-      capture_pageview: false, // manual — tracked by PostHogPageView
-      capture_pageleave: true,
-    });
-  }, []);
-
   return (
     <PHProvider client={posthog}>
       <Suspense fallback={null}>
