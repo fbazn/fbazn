@@ -28,6 +28,15 @@ export default function LoginPage() {
       return;
     }
 
+    if (isSignUp) {
+      // Trigger welcome email drip — fire and forget
+      fetch("https://n8n.fbazn.com/webhook/welcome-drip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: { email } }),
+      }).catch(() => {});
+    }
+
     router.replace("/");
     router.refresh();
   };
