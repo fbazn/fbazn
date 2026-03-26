@@ -12,6 +12,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     const emailParam = searchParams.get("email");
@@ -43,11 +44,43 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: { email } }),
       }).catch(() => {});
+      // Show verify email screen — user can't log in until confirmed
+      setEmailSent(true);
+      setIsSubmitting(false);
+      return;
     }
 
     router.replace("/");
     router.refresh();
   };
+
+  if (emailSent) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 shadow-sm text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
+            <svg className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-[rgb(var(--text))]">Check your inbox</h1>
+          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
+            We sent a confirmation link to <span className="font-medium text-[rgb(var(--text))]">{email}</span>.<br />
+            Click the link to activate your account.
+          </p>
+          <p className="mt-6 text-xs text-[rgb(var(--muted))]">
+            Didn&apos;t receive it? Check your spam folder or{" "}
+            <button
+              onClick={() => setEmailSent(false)}
+              className="font-semibold text-indigo-500 hover:text-indigo-400"
+            >
+              try again
+            </button>.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
