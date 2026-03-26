@@ -8,7 +8,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Initialise at module level so it's ready before any component mounts.
 // The typeof window guard prevents this running during SSR.
 if (typeof window !== "undefined") {
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  const key = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
   if (key) {
     posthog.init(key, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com",
