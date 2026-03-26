@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     const supabase = createClient();
     const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password })
+      ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: "https://app.fbazn.com" } })
       : await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
