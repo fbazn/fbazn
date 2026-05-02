@@ -18,10 +18,10 @@ const statusVariant: Record<
 
 export function DataTable({ rows, onRowClick }: DataTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[rgb(var(--panel))] text-xs uppercase tracking-wide text-[rgb(var(--muted))]">
+    <div className="industrial-panel overflow-hidden">
+      <div className="relative overflow-x-auto">
+        <table className="app-table">
+          <thead>
             <tr>
               <th className="px-4 py-3">Item</th>
               <th className="px-4 py-3">Supplier</th>
@@ -41,7 +41,7 @@ export function DataTable({ rows, onRowClick }: DataTableProps) {
               >
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 overflow-hidden rounded-lg bg-[rgb(var(--bg-elevated))]">
+                    <div className="h-10 w-10 overflow-hidden border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))]">
                       {row.imageUrl ? (
                         <img
                           src={row.imageUrl}

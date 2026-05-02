@@ -1,6 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -47,6 +49,45 @@ function buildPasswordResetRedirectUrl() {
   return url.toString();
 }
 
+function AuthCard({
+  eyebrow = "FBAZN",
+  title,
+  description,
+  centered = false,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  description: ReactNode;
+  centered?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <main className="auth-shell">
+      <div className={`auth-card p-6 pt-10 ${centered ? "text-center" : ""}`}>
+        <div className="relative space-y-2">
+          <p className="section-label">{eyebrow}</p>
+          <h1 className="font-barlow-condensed text-4xl font-black uppercase leading-none tracking-normal text-[rgb(var(--text))]">
+            {title}
+          </h1>
+          <p className="text-sm leading-6 text-[rgb(var(--muted))]">
+            {description}
+          </p>
+        </div>
+        <div className="relative mt-6">{children}</div>
+      </div>
+    </main>
+  );
+}
+
+function MailMarker() {
+  return (
+    <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center border border-amber-500/40 bg-amber-500/10 text-amber-300">
+      <Mail className="h-5 w-5" />
+    </div>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -84,7 +125,7 @@ function LoginForm() {
 
   const billingPath = useMemo(() => buildBillingPath(selectedPlan), [selectedPlan]);
 
-  const handleForgot = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleForgot = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
@@ -100,7 +141,7 @@ function LoginForm() {
     setIsSubmitting(false);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
@@ -154,191 +195,92 @@ function LoginForm() {
 
   if (emailSent) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
-            <svg className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-semibold text-[rgb(var(--text))]">Check your inbox</h1>
-          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            We sent a confirmation link to <span className="font-medium text-[rgb(var(--text))]">{email}</span>.
-            <br />
+      <AuthCard
+        title="Check your inbox"
+        centered
+        description={
+          <>
+            We sent a confirmation link to{" "}
+            <span className="font-medium text-[rgb(var(--text))]">{email}</span>.
             Confirm your account, then we will take you to checkout for your selected trial.
-          </p>
-          <p className="mt-6 text-xs text-[rgb(var(--muted))]">
-            Did not receive it? Check your spam folder or{" "}
-            <button
-              type="button"
-              onClick={() => setEmailSent(false)}
-              className="font-semibold text-indigo-500 hover:text-indigo-400"
-            >
-              try again
-            </button>.
-          </p>
-        </div>
-      </main>
+          </>
+        }
+      >
+        <MailMarker />
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Did not receive it? Check your spam folder or{" "}
+          <button
+            type="button"
+            onClick={() => setEmailSent(false)}
+            className="font-semibold text-amber-300 hover:text-amber-200"
+          >
+            try again
+          </button>.
+        </p>
+      </AuthCard>
     );
   }
 
   if (resetSent) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 shadow-sm text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
-            <svg className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-semibold text-[rgb(var(--text))]">Check your inbox</h1>
-          <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            We sent a password reset link to <span className="font-medium text-[rgb(var(--text))]">{email}</span>.
-          </p>
-          <p className="mt-6 text-xs text-[rgb(var(--muted))]">
-            Didn&apos;t receive it?{" "}
-            <button
-              onClick={() => { setResetSent(false); setIsForgot(true); }}
-              className="font-semibold text-indigo-500 hover:text-indigo-400"
-            >
-              Try again
-            </button>{" "}or{" "}
-            <button
-              onClick={() => { setResetSent(false); setIsForgot(false); }}
-              className="font-semibold text-indigo-500 hover:text-indigo-400"
-            >
-              back to sign in
-            </button>.
-          </p>
-        </div>
-      </main>
+      <AuthCard
+        title="Check your inbox"
+        centered
+        description={
+          <>
+            We sent a password reset link to{" "}
+            <span className="font-medium text-[rgb(var(--text))]">{email}</span>.
+          </>
+        }
+      >
+        <MailMarker />
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Did not receive it?{" "}
+          <button
+            onClick={() => {
+              setResetSent(false);
+              setIsForgot(true);
+            }}
+            className="font-semibold text-amber-300 hover:text-amber-200"
+          >
+            Try again
+          </button>{" "}
+          or{" "}
+          <button
+            onClick={() => {
+              setResetSent(false);
+              setIsForgot(false);
+            }}
+            className="font-semibold text-amber-300 hover:text-amber-200"
+          >
+            back to sign in
+          </button>.
+        </p>
+      </AuthCard>
     );
   }
 
   if (isForgot) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-indigo-500">FBAZN</p>
-            <h1 className="text-2xl font-semibold text-[rgb(var(--text))]">Reset your password</h1>
-            <p className="text-sm text-[rgb(var(--muted))]">
-              Enter your email and we&apos;ll send you a reset link.
-            </p>
-          </div>
-
-          <form className="mt-6 space-y-4" onSubmit={handleForgot}>
-            <label className="flex flex-col gap-2 text-sm font-medium text-[rgb(var(--text))]">
-              Email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="h-11 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="you@company.com"
-                required
-              />
-            </label>
-
-            {errorMessage && (
-              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                {errorMessage}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex h-11 w-full items-center justify-center rounded-xl bg-indigo-500 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? "Sending…" : "Send reset link"}
-            </button>
-          </form>
-
-          <div className="mt-5 text-center text-sm text-[rgb(var(--muted))]">
-            <button
-              type="button"
-              onClick={() => { setIsForgot(false); setErrorMessage(null); }}
-              className="font-semibold text-indigo-500 hover:text-indigo-400"
-            >
-              ← Back to sign in
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 shadow-sm">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-indigo-500">FBAZN</p>
-          <h1 className="text-2xl font-semibold text-[rgb(var(--text))]">
-            {isSignUp ? "Create your account" : "Welcome back"}
-          </h1>
-          <p className="text-sm text-[rgb(var(--muted))]">
-            {isSignUp
-              ? "Create your account, confirm your email, then complete secure Stripe checkout."
-              : "Sign in to continue to your sourcing workspace."}
-          </p>
-        </div>
-
-        {selectedPlan && (
-          <div className="mt-5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
-              Selected trial plan
-            </p>
-            <p className="mt-1 text-sm text-[rgb(var(--text))]">
-              {ACTIVE_PLAN_NAMES[selectedPlan]} plan. Card details are entered securely in Stripe Checkout.
-            </p>
-          </div>
-        )}
-
-        {statusMessage && (
-          <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {statusMessage}
-          </div>
-        )}
-
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+      <AuthCard
+        title="Reset password"
+        description="Enter your email and we will send you a reset link."
+      >
+        <form className="space-y-4" onSubmit={handleForgot}>
           <label className="flex flex-col gap-2 text-sm font-medium text-[rgb(var(--text))]">
-            Email
+            <span className="field-label">Email</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-11 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="app-input h-11"
               placeholder="you@company.com"
               required
             />
           </label>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[rgb(var(--text))]">Password</span>
-              {!isSignUp && (
-                <button
-                  type="button"
-                  onClick={() => { setIsForgot(true); setErrorMessage(null); }}
-                  className="text-xs text-indigo-500 hover:text-indigo-400"
-                >
-                  Forgot password?
-                </button>
-              )}
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="h-11 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Password"
-              required
-            />
-          </div>
-
           {errorMessage && (
-            <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            <div className="border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
               {errorMessage}
             </div>
           )}
@@ -346,28 +288,121 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex h-11 w-full items-center justify-center rounded-xl bg-indigo-500 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary h-11 w-full disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isSubmitting
-              ? "Working..."
-              : isSignUp
-                ? "Create account and continue"
-                : "Sign in"}
+            {isSubmitting ? "Sending..." : "Send reset link"}
           </button>
         </form>
 
         <div className="mt-5 text-center text-sm text-[rgb(var(--muted))]">
-          {isSignUp ? "Already have an account?" : "New to FBAZN?"}{" "}
           <button
             type="button"
-            onClick={() => setIsSignUp((value) => !value)}
-            className="font-semibold text-indigo-500 hover:text-indigo-400"
+            onClick={() => {
+              setIsForgot(false);
+              setErrorMessage(null);
+            }}
+            className="font-semibold text-amber-300 hover:text-amber-200"
           >
-            {isSignUp ? "Sign in" : "Create account"}
+            Back to sign in
           </button>
         </div>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard
+      title={isSignUp ? "Create account" : "Welcome back"}
+      description={
+        isSignUp
+          ? "Create your account, confirm your email, then complete secure Stripe checkout."
+          : "Sign in to continue to your sourcing workspace."
+      }
+    >
+      {selectedPlan && (
+        <div className="mb-5 border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <p className="field-label text-amber-300">Selected trial plan</p>
+          <p className="mt-1 text-sm text-[rgb(var(--text))]">
+            {ACTIVE_PLAN_NAMES[selectedPlan]} plan. Card details are entered securely in Stripe Checkout.
+          </p>
+        </div>
+      )}
+
+      {statusMessage && (
+        <div className="mb-5 border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          {statusMessage}
+        </div>
+      )}
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <label className="flex flex-col gap-2 text-sm font-medium text-[rgb(var(--text))]">
+          <span className="field-label">Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="app-input h-11"
+            placeholder="you@company.com"
+            required
+          />
+        </label>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="field-label">Password</span>
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgot(true);
+                  setErrorMessage(null);
+                }}
+                className="text-xs font-semibold text-amber-300 hover:text-amber-200"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="app-input h-11"
+            placeholder="Password"
+            required
+          />
+        </div>
+
+        {errorMessage && (
+          <div className="border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            {errorMessage}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn-primary h-11 w-full disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSubmitting
+            ? "Working..."
+            : isSignUp
+              ? "Create account and continue"
+              : "Sign in"}
+        </button>
+      </form>
+
+      <div className="mt-5 text-center text-sm text-[rgb(var(--muted))]">
+        {isSignUp ? "Already have an account?" : "New to FBAZN?"}{" "}
+        <button
+          type="button"
+          onClick={() => setIsSignUp((value) => !value)}
+          className="font-semibold text-amber-300 hover:text-amber-200"
+        >
+          {isSignUp ? "Sign in" : "Create account"}
+        </button>
       </div>
-    </main>
+    </AuthCard>
   );
 }
 

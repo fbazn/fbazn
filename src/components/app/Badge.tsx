@@ -4,7 +4,8 @@ type BadgeProps = {
 };
 
 const variantStyles: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  default: "bg-[rgb(var(--bg-elevated))] text-[rgb(var(--text))]",
+  default:
+    "border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-[rgb(var(--text))]",
   success: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40",
   warning: "bg-amber-500/15 text-amber-300 border border-amber-500/40",
   danger: "bg-rose-500/15 text-rose-300 border border-rose-500/40",
@@ -15,7 +16,7 @@ const variantStyles: Record<NonNullable<BadgeProps["variant"]>, string> = {
 export function Badge({ label, variant = "default" }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+      className={`inline-flex items-center rounded-[2px] px-2 py-0.5 font-barlow-condensed text-[11px] font-bold uppercase tracking-[0.12em] ${
         variantStyles[variant]
       }`}
     >

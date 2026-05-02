@@ -35,11 +35,11 @@ export function SidebarNav({ items, isExpanded }: SidebarNavProps) {
             className={`group relative flex items-center gap-3 px-3 py-2.5 transition ${
               isActive
                 ? "text-[rgb(var(--text))]"
-                : "text-[rgb(var(--muted))] hover:text-[rgb(var(--text))] hover:bg-[rgba(99,102,241,0.06)]"
+                : "text-[rgb(var(--muted))] hover:bg-amber-500/5 hover:text-[rgb(var(--text))]"
             } ${item.disabled ? "cursor-not-allowed opacity-60" : ""}`}
             style={isActive ? {
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.3)',
+              background: 'linear-gradient(90deg, rgba(245,158,11,0.10), rgba(99,102,241,0.10))',
+              border: '1px solid rgba(245,158,11,0.28)',
               borderRadius: '2px',
             } : {
               border: '1px solid transparent',
@@ -49,12 +49,12 @@ export function SidebarNav({ items, isExpanded }: SidebarNavProps) {
             {isActive && (
               <span
                 className="absolute left-0 top-0 bottom-0 w-0.5"
-                style={{ background: 'rgb(var(--indigo))', borderRadius: '0 2px 2px 0' }}
+                style={{ background: 'rgb(var(--amber))', borderRadius: '0 2px 2px 0' }}
               />
             )}
             <Icon
               className="h-4 w-4 flex-shrink-0"
-              style={{ color: isActive ? 'rgb(var(--indigo))' : undefined }}
+              style={{ color: isActive ? 'rgb(var(--amber))' : undefined }}
             />
             {isExpanded && (
               <span className="flex flex-1 items-center justify-between text-[13px] font-semibold uppercase tracking-wider">

@@ -1,18 +1,18 @@
 "use client";
 
 import {
-  LayoutDashboard,
-  ClipboardList,
-  List,
-  Search,
-  Building2,
   Archive,
   Bell,
-  Plug,
+  Building2,
+  ClipboardList,
   CreditCard,
-  Settings,
   HelpCircle,
+  LayoutDashboard,
+  List,
   Pin,
+  Plug,
+  Search,
+  Settings,
 } from "lucide-react";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarItemStrip } from "./SidebarItemStrip";
@@ -36,7 +36,7 @@ const secondaryItems = [
     label: "Integrations",
     href: "/integrations",
     icon: Plug,
-    badge: "🔒 Coming soon",
+    badge: "Soon",
     disabled: true,
   },
   { label: "Billing", href: "/billing", icon: CreditCard },
@@ -84,7 +84,7 @@ export function Sidebar({
   return (
     <>
       <div
-        className={`fixed inset-0 z-30 bg-black/50 transition md:hidden ${
+        className={`fixed inset-0 z-30 bg-black/60 backdrop-blur-sm transition md:hidden ${
           isMobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={onCloseMobile}
@@ -92,36 +92,42 @@ export function Sidebar({
       <aside
         onMouseEnter={() => onHoverChange(true)}
         onMouseLeave={() => onHoverChange(false)}
-        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[rgb(var(--border))] bg-[rgb(var(--bg))] transition-all duration-200 md:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[rgb(var(--border))] bg-[rgba(8,12,24,0.94)] shadow-[16px_0_54px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-200 md:translate-x-0 ${
           isExpanded ? "w-[260px]" : "w-[72px]"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div
-          className="flex items-center justify-between px-4"
-          style={{ height: '64px', borderBottom: '1px solid rgb(var(--border))' }}
+          className="relative flex items-center justify-between px-4"
+          style={{ height: "64px", borderBottom: "1px solid rgb(var(--border))" }}
         >
           <div className="flex items-center">
             {isExpanded ? (
-              <span
-                className="font-barlow-condensed font-black tracking-wider select-none"
-                style={{ fontSize: '22px', color: 'rgb(var(--text))' }}
-              >
-                FB<span style={{ color: 'rgb(var(--indigo))' }}>AZN</span>
-              </span>
+              <div>
+                <span
+                  className="select-none font-barlow-condensed font-black uppercase tracking-normal"
+                  style={{ fontSize: "24px", color: "rgb(var(--text))" }}
+                >
+                  FB<span style={{ color: "rgb(var(--indigo))" }}>AZN</span>
+                </span>
+                <p className="section-label -mt-1 text-[9px]">
+                  Command centre
+                </p>
+              </div>
             ) : (
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-indigo-600 text-sm font-bold text-white font-barlow-condensed">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-[linear-gradient(135deg,rgb(var(--amber)),rgb(var(--indigo)))] font-barlow-condensed text-sm font-black text-white [clip-path:polygon(6px_0%,100%_0%,calc(100%_-_6px)_100%,0%_100%)]">
                 FZ
               </div>
             )}
           </div>
+
           {isExpanded && (
             <button
               type="button"
               onClick={onTogglePin}
-              className={`flex h-8 w-8 items-center justify-center rounded border border-[rgb(var(--border))] text-[rgb(var(--muted))] transition ${
+              className={`flex h-8 w-8 items-center justify-center border text-[rgb(var(--muted))] transition ${
                 isPinned
-                  ? "bg-[rgb(var(--card))]"
-                  : "hover:bg-[rgb(var(--card))]"
+                  ? "border-amber-500/50 bg-amber-500/10 text-amber-300"
+                  : "border-[rgb(var(--border))] hover:border-amber-500/50 hover:bg-[rgb(var(--card))]"
               }`}
               aria-label="Pin sidebar"
             >
@@ -141,7 +147,7 @@ export function Sidebar({
 
         <div className="border-t border-[rgb(var(--border))] px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-xs font-semibold text-white">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-[linear-gradient(135deg,rgb(var(--amber)),rgb(var(--indigo)))] font-barlow-condensed text-xs font-black text-white">
               {userInitials(displayName)}
             </div>
             {isExpanded && (

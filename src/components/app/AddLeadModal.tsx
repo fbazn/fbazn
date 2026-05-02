@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
@@ -93,11 +93,13 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] shadow-2xl">
+      <div className="industrial-panel relative z-10 w-full max-w-2xl overflow-hidden">
+        <div className="hazard-bar" />
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[rgb(var(--border))] px-6 py-5">
+        <div className="relative flex items-center justify-between border-b border-[rgb(var(--border))] px-6 py-5">
           <div>
-            <h2 className="text-lg font-semibold text-[rgb(var(--text))]">
+            <p className="section-label">Manual intake</p>
+            <h2 className="font-barlow-condensed text-3xl font-black uppercase tracking-normal text-[rgb(var(--text))]">
               Add new lead
             </h2>
             <p className="text-sm text-[rgb(var(--muted))]">
@@ -107,14 +109,14 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:bg-[rgb(var(--card))]"
+            className="flex h-9 w-9 items-center justify-center border border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-amber-500/50 hover:bg-[rgb(var(--card))]"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="max-h-[65vh] overflow-y-auto px-6 py-6">
+          <div className="relative max-h-[65vh] overflow-y-auto px-6 py-6">
             <div className="space-y-5">
               {/* ASIN + Marketplace */}
               <div className="grid gap-4 sm:grid-cols-[1fr,auto]">
@@ -126,7 +128,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={asin}
                     onChange={(e) => setAsin(e.target.value)}
                     placeholder="B0C9JQ4L5Z"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                     required
                   />
                 </div>
@@ -137,7 +139,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                   <select
                     value={marketplace}
                     onChange={(e) => setMarketplace(e.target.value)}
-                    className="h-10 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-select h-10"
                   >
                     {MARKETPLACES.map((m) => (
                       <option key={m} value={m}>
@@ -157,7 +159,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Ergonomic Mesh Office Chair"
-                  className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  className="app-input h-10"
                   required
                 />
               </div>
@@ -172,7 +174,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
                     placeholder="e.g. Costco Wholesale"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -184,7 +186,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={supplierUrl}
                     onChange={(e) => setSupplierUrl(e.target.value)}
                     placeholder="https://..."
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
               </div>
@@ -193,7 +195,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-                    Supplier cost (£/$)
+                    Supplier cost
                   </label>
                   <input
                     type="number"
@@ -202,7 +204,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={supplierCost}
                     onChange={(e) => setSupplierCost(e.target.value)}
                     placeholder="0.00"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,7 +218,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={buyBoxPrice}
                     onChange={(e) => setBuyBoxPrice(e.target.value)}
                     placeholder="0.00"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -230,14 +232,14 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={fees}
                     onChange={(e) => setFees(e.target.value)}
                     placeholder="0.00"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
               </div>
 
               {/* Live profit preview */}
               {(estProfit !== undefined || estRoi !== undefined) && (
-                <div className="flex items-center gap-6 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-3 text-sm">
+                <div className="flex items-center gap-6 border border-[rgb(var(--border))] bg-[rgba(8,12,24,0.72)] px-4 py-3 text-sm">
                   <div>
                     <div className="text-xs text-[rgb(var(--muted))]">Est. profit</div>
                     <div
@@ -248,8 +250,8 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                       }`}
                     >
                       {estProfit !== undefined
-                        ? `£${estProfit.toFixed(2)}`
-                        : "—"}
+                        ? `\u00a3${estProfit.toFixed(2)}`
+                        : "-"}
                     </div>
                   </div>
                   <div>
@@ -263,7 +265,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                           : "text-rose-400"
                       }`}
                     >
-                      {estRoi !== undefined ? `${estRoi}%` : "—"}
+                      {estRoi !== undefined ? `${estRoi}%` : "-"}
                     </div>
                   </div>
                 </div>
@@ -279,7 +281,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={rankText}
                     onChange={(e) => setRankText(e.target.value)}
                     placeholder="#1,234 Home & Kitchen"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -290,7 +292,7 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="kitchen, seasonal"
-                    className="h-10 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                    className="app-input h-10"
                   />
                 </div>
               </div>
@@ -304,32 +306,32 @@ export function AddLeadModal({ onClose, defaultMarketplace }: Props) {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Any sourcing notes..."
-                  className="w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 py-2 text-sm text-[rgb(var(--text))] focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  className="app-input min-h-24 py-2"
                 />
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="mx-6 mb-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+            <div className="relative mx-6 mb-2 border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
               {error}
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 border-t border-[rgb(var(--border))] px-6 py-4">
+          <div className="relative flex items-center justify-end gap-3 border-t border-[rgb(var(--border))] px-6 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[rgb(var(--border-subtle))] px-4 py-2 text-sm text-[rgb(var(--text))] hover:bg-[rgb(var(--card))]"
+              className="btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-full bg-indigo-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-primary disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isPending ? "Saving…" : "Add to review queue"}
+              {isPending ? "Saving..." : "Add to review queue"}
             </button>
           </div>
         </form>

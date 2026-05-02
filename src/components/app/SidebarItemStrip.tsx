@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import type { MockItem } from "@/lib/mockData";
 import { Tooltip } from "./Tooltip";
-import Link from "next/link";
 
 type SidebarItemStripProps = {
   isExpanded: boolean;
@@ -13,9 +13,7 @@ export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
   return (
     <div className="space-y-2">
       {isExpanded && (
-        <p className="px-3 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">
-          Recent
-        </p>
+        <p className="section-label px-3 text-[10px]">Recent</p>
       )}
       <div className={`grid gap-2 ${isExpanded ? "grid-cols-3" : "grid-cols-1"}`}>
         {items.slice(0, 9).map((item) => {
@@ -24,6 +22,7 @@ export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
             .slice(0, 2)
             .map((word) => word[0])
             .join("");
+
           return (
             <Tooltip
               key={item.id}
@@ -33,14 +32,14 @@ export function SidebarItemStrip({ isExpanded, items }: SidebarItemStripProps) {
                     {item.title}
                   </div>
                   <div className="text-[11px] text-[rgb(var(--muted))]">
-                    ROI {item.roi}% • Profit ${item.profit.toFixed(2)}
+                    ROI {item.roi}% / Profit ${item.profit.toFixed(2)}
                   </div>
                 </div>
               }
             >
               <Link
                 href="/sourcing"
-                className="relative flex h-12 w-12 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-xs font-semibold text-[rgb(var(--text))] transition hover:border-[rgb(var(--border-subtle))]"
+                className="relative flex h-12 w-12 overflow-hidden border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] text-xs font-semibold text-[rgb(var(--text))] transition hover:border-amber-500/50"
               >
                 {item.imageUrl ? (
                   <img

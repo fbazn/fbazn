@@ -41,9 +41,15 @@ export function AppShell({
   return (
     <ReviewQueueProvider initialCount={initialReviewQueueCount}>
       <div
-        className="min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--text))]"
+        className="relative min-h-screen overflow-hidden bg-[rgb(var(--bg))] text-[rgb(var(--text))]"
         style={{ "--sidebar-width": sidebarWidth } as CSSProperties}
       >
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-80 bg-[linear-gradient(115deg,rgba(245,158,11,0.14),transparent_34%,rgba(99,102,241,0.16)_72%,transparent)]" />
+          <div className="absolute inset-y-0 left-0 w-px bg-amber-500/30 md:left-[var(--sidebar-width)]" />
+          <div className="absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(0deg,rgba(99,102,241,0.08),transparent)]" />
+        </div>
+
         <Sidebar
           isExpanded={isExpanded}
           isPinned={isPinned}
@@ -61,8 +67,8 @@ export function AppShell({
           user={user}
         />
 
-        <div className="relative pt-24 transition-[padding] md:pl-[var(--sidebar-width)]">
-          <main className="mx-auto w-full max-w-screen-2xl px-4 pb-16 md:px-8">
+        <div className="relative z-10 pt-24 transition-[padding] md:pl-[var(--sidebar-width)]">
+          <main className="mx-auto w-full max-w-[1500px] px-4 pb-16 md:px-8">
             {children}
           </main>
         </div>

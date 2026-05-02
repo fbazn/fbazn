@@ -36,6 +36,11 @@
   }
 
   body {
+    min-height: 100vh;
+    background:
+      linear-gradient(115deg, rgba(245, 158, 11, 0.14), transparent 22rem),
+      linear-gradient(245deg, rgba(99, 102, 241, 0.16), transparent 26rem),
+      linear-gradient(180deg, rgba(14, 20, 37, 0.72), rgb(var(--bg)) 34rem);
     background-color: rgb(var(--bg));
     color: rgb(var(--text));
     font-family: var(--font-barlow, 'Barlow'), sans-serif;
@@ -46,25 +51,51 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(99, 102, 241, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.035) 1px, transparent 1px),
+      linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 158, 11, 0.025) 1px, transparent 1px);
+    background-size: 56px 56px, 56px 56px, 224px 224px, 224px 224px;
     pointer-events: none;
     z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(240, 244, 255, 0.025), transparent 1px);
+    background-size: 100% 7px;
+    opacity: 0.32;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  ::selection {
+    background: rgba(245, 158, 11, 0.35);
+    color: rgb(var(--text));
   }
 }
 
 @layer components {
+  @keyframes hazardShift {
+    from { background-position: 0 0; }
+    to { background-position: 32px 0; }
+  }
+
   .hazard-bar {
-    height: 4px;
+    height: 7px;
     flex-shrink: 0;
     background: repeating-linear-gradient(
-      -45deg,
-      #f59e0b 0px,
-      #f59e0b 6px,
-      transparent 6px,
-      transparent 12px
+      -35deg,
+      rgba(245, 158, 11, 0.95) 0px,
+      rgba(245, 158, 11, 0.95) 10px,
+      rgba(8, 12, 24, 0.95) 10px,
+      rgba(8, 12, 24, 0.95) 20px
     );
+    background-size: 32px 100%;
+    border-block: 1px solid rgba(245, 158, 11, 0.28);
+    animation: hazardShift 1.25s linear infinite;
   }
 
   .section-label {
@@ -76,6 +107,68 @@
     color: rgb(var(--amber));
   }
 
+  .industrial-panel {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(8, 12, 24, 0.92)),
+      rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    border-radius: 4px;
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.24);
+  }
+
+  .industrial-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(245, 158, 11, 0.12), transparent 22%),
+      linear-gradient(180deg, rgba(240, 244, 255, 0.035), transparent 46%);
+    opacity: 0.7;
+  }
+
+  .industrial-card {
+    position: relative;
+    overflow: hidden;
+    background: rgba(14, 20, 37, 0.84);
+    border: 1px solid rgb(var(--border));
+    border-radius: 4px;
+    box-shadow: inset 0 1px 0 rgba(240, 244, 255, 0.04);
+  }
+
+  .industrial-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: rgb(var(--indigo));
+    opacity: 0.7;
+  }
+
+  .industrial-card[data-accent='amber']::before {
+    background: rgb(var(--amber));
+  }
+
+  .metric-value {
+    font-family: var(--font-barlow-condensed, 'Barlow Condensed'), sans-serif;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: rgb(var(--text));
+  }
+
+  .field-label {
+    font-family: var(--font-barlow-condensed, 'Barlow Condensed'), sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--muted));
+  }
+
   .card {
     background: rgb(var(--card));
     border: 1px solid rgb(var(--border));
@@ -85,17 +178,20 @@
   .app-input {
     width: 100%;
     padding: 10px 14px;
-    background: rgb(var(--bg));
+    background: rgba(8, 12, 24, 0.84);
     border: 1px solid rgb(var(--border));
     color: rgb(var(--text));
     font-size: 13px;
     font-family: var(--font-barlow, 'Barlow'), sans-serif;
     border-radius: 2px;
     outline: none;
-    transition: border-color 0.15s;
+    box-shadow: inset 0 1px 0 rgba(240, 244, 255, 0.03);
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   }
   .app-input:focus {
-    border-color: rgb(var(--indigo));
+    border-color: rgb(var(--amber));
+    background: rgba(8, 12, 24, 0.95);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
   }
   .app-input::placeholder {
     color: rgb(var(--text-dim));
@@ -104,7 +200,7 @@
   .app-select {
     width: 100%;
     padding: 10px 14px;
-    background: rgb(var(--bg));
+    background: rgba(8, 12, 24, 0.84);
     border: 1px solid rgb(var(--border));
     color: rgb(var(--text));
     font-size: 13px;
@@ -119,7 +215,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 24px;
-    background: rgb(var(--indigo));
+    background: linear-gradient(135deg, rgb(var(--indigo)), rgb(79 82 201));
     color: #fff;
     font-family: var(--font-barlow-condensed, 'Barlow Condensed'), sans-serif;
     font-weight: 700;
@@ -129,11 +225,13 @@
     border: none;
     border-radius: 2px;
     cursor: pointer;
-    transition: background 0.15s;
+    box-shadow: 0 14px 32px rgba(99, 102, 241, 0.22);
+    transition: filter 0.15s, transform 0.15s;
     clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
   }
   .btn-primary:hover {
-    background: rgb(79 82 201);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
   }
   .btn-primary:disabled {
     opacity: 0.6;
@@ -157,9 +255,10 @@
     border-radius: 2px;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
+    clip-path: polygon(5px 0%, 100% 0%, calc(100% - 5px) 100%, 0% 100%);
   }
   .btn-secondary:hover {
-    border-color: rgb(var(--indigo));
+    border-color: rgb(var(--amber));
     color: rgb(var(--text));
   }
 
@@ -212,7 +311,7 @@
     text-transform: uppercase;
     color: rgb(var(--muted));
     border-bottom: 1px solid rgb(var(--border));
-    background: rgb(var(--bg-elevated));
+    background: rgba(8, 12, 24, 0.94);
   }
   .app-table td {
     padding: 12px 16px;
@@ -223,7 +322,45 @@
     border-bottom: none;
   }
   .app-table tbody tr:hover td {
-    background: rgba(99, 102, 241, 0.03);
+    background: rgba(245, 158, 11, 0.04);
+  }
+
+  .auth-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    background:
+      linear-gradient(125deg, rgba(245, 158, 11, 0.18), transparent 24rem),
+      linear-gradient(245deg, rgba(99, 102, 241, 0.18), transparent 28rem);
+  }
+
+  .auth-card {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 448px;
+    border: 1px solid rgb(var(--border));
+    border-radius: 4px;
+    background: rgba(14, 20, 37, 0.94);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+  }
+
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 7px;
+    background: repeating-linear-gradient(
+      -35deg,
+      rgba(245, 158, 11, 0.95) 0px,
+      rgba(245, 158, 11, 0.95) 10px,
+      rgba(8, 12, 24, 0.95) 10px,
+      rgba(8, 12, 24, 0.95) 20px
+    );
+    background-size: 32px 100%;
+    animation: hazardShift 1.25s linear infinite;
   }
 }
 
@@ -308,4 +445,37 @@
 
 .driver-overlay {
   background: rgba(0, 0, 0, 0.6) !important;
+}
+
+main [class*="rounded-2xl"],
+main [class*="rounded-xl"],
+main [class*="rounded-lg"],
+main [class*="rounded-full"],
+header [class*="rounded-"],
+aside [class*="rounded-"] {
+  border-radius: 4px !important;
+}
+
+main input:not([type="checkbox"]):not([type="radio"]),
+main select,
+main textarea {
+  border-radius: 2px !important;
+  background-color: rgba(8, 12, 24, 0.84) !important;
+  box-shadow: inset 0 1px 0 rgba(240, 244, 255, 0.03);
+}
+
+main button[class*="bg-blue-600"],
+main button[class*="bg-indigo-500"],
+main a[class*="bg-indigo-500"] {
+  background: linear-gradient(135deg, rgb(var(--indigo)), rgb(79 82 201)) !important;
+  border-radius: 2px !important;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+
+main [class*="bg-blue-500/10"] {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+main [class*="text-blue-"] {
+  color: rgb(var(--indigo)) !important;
 }
