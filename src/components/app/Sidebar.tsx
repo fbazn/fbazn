@@ -96,17 +96,21 @@ export function Sidebar({
           isExpanded ? "w-[260px]" : "w-[72px]"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
-        <div className="flex items-center justify-between px-4 py-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-sm font-bold text-white">
-              FZ
-            </div>
-            {isExpanded && (
-              <div>
-                <div className="text-sm font-semibold">FBAZN</div>
-                <div className="text-xs text-[rgb(var(--muted))]">
-                  app.fbazn.com
-                </div>
+        <div
+          className="flex items-center justify-between px-4"
+          style={{ height: '64px', borderBottom: '1px solid rgb(var(--border))' }}
+        >
+          <div className="flex items-center">
+            {isExpanded ? (
+              <span
+                className="font-barlow-condensed font-black tracking-wider select-none"
+                style={{ fontSize: '22px', color: 'rgb(var(--text))' }}
+              >
+                FB<span style={{ color: 'rgb(var(--indigo))' }}>AZN</span>
+              </span>
+            ) : (
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-indigo-600 text-sm font-bold text-white font-barlow-condensed">
+                FZ
               </div>
             )}
           </div>
@@ -114,7 +118,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onTogglePin}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[rgb(var(--border))] text-[rgb(var(--muted))] transition ${
+              className={`flex h-8 w-8 items-center justify-center rounded border border-[rgb(var(--border))] text-[rgb(var(--muted))] transition ${
                 isPinned
                   ? "bg-[rgb(var(--card))]"
                   : "hover:bg-[rgb(var(--card))]"
@@ -125,6 +129,7 @@ export function Sidebar({
             </button>
           )}
         </div>
+        <div className="hazard-bar" />
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
           <SidebarNav items={primaryItems} isExpanded={isExpanded} />

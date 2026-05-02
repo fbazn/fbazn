@@ -32,15 +32,32 @@ export function SidebarNav({ items, isExpanded }: SidebarNavProps) {
             key={item.href}
             id={item.id}
             href={item.disabled ? "#" : item.href}
-            className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+            className={`group relative flex items-center gap-3 px-3 py-2.5 transition ${
               isActive
-                ? "bg-[rgb(var(--card))] text-[rgb(var(--text))]"
-                : "text-[rgb(var(--muted))] hover:bg-[rgb(var(--card))] hover:text-[rgb(var(--text))]"
+                ? "text-[rgb(var(--text))]"
+                : "text-[rgb(var(--muted))] hover:text-[rgb(var(--text))] hover:bg-[rgba(99,102,241,0.06)]"
             } ${item.disabled ? "cursor-not-allowed opacity-60" : ""}`}
+            style={isActive ? {
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              borderRadius: '2px',
+            } : {
+              border: '1px solid transparent',
+              borderRadius: '2px',
+            }}
           >
-            <Icon className="h-5 w-5" />
+            {isActive && (
+              <span
+                className="absolute left-0 top-0 bottom-0 w-0.5"
+                style={{ background: 'rgb(var(--indigo))', borderRadius: '0 2px 2px 0' }}
+              />
+            )}
+            <Icon
+              className="h-4 w-4 flex-shrink-0"
+              style={{ color: isActive ? 'rgb(var(--indigo))' : undefined }}
+            />
             {isExpanded && (
-              <span className="flex flex-1 items-center justify-between">
+              <span className="flex flex-1 items-center justify-between text-[13px] font-semibold uppercase tracking-wider">
                 <span>{item.label}</span>
                 {item.badge && <Badge label={item.badge} variant="muted" />}
               </span>
