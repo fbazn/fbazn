@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 function getRedirectTarget(request: NextRequest) {
+  const next = request.nextUrl.searchParams.get("next");
+  if (next) {
+    return { pathname: next, search: "" };
+  }
+
   const plan = request.nextUrl.searchParams.get("plan");
   const checkout = request.nextUrl.searchParams.get("checkout");
 

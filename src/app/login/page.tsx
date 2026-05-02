@@ -75,7 +75,7 @@ function LoginForm() {
     setIsSubmitting(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://app.fbazn.com/auth/reset",
+      redirectTo: "https://app.fbazn.com/auth/callback?next=/auth/reset",
     });
     if (error) {
       setErrorMessage(error.message);

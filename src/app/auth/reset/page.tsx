@@ -1,27 +1,15 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-function ResetForm() {
+export default function ResetPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    // Supabase exchanges the token from the URL fragment automatically
-    // We just need to wait for the session to be established
-    const supabase = createClient();
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,19 +29,10 @@ function ResetForm() {
       setErrorMessage(error.message);
       setIsSubmitting(false);
     } else {
+      await supabase.auth.signOut();
       router.replace("/login");
     }
   };
-
-  if (!ready) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center">
-          <p className="text-sm text-[rgb(var(--muted))]">Verifying reset link…</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -105,13 +84,5 @@ function ResetForm() {
         </form>
       </div>
     </main>
-  );
-}
-
-export default function ResetPage() {
-  return (
-    <Suspense>
-      <ResetForm />
-    </Suspense>
   );
 }
