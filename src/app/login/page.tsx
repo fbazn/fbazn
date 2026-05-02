@@ -41,6 +41,12 @@ function buildEmailRedirectUrl(plan: ActivePlanId | null) {
   return url.toString();
 }
 
+function buildPasswordResetRedirectUrl() {
+  const url = new URL("/auth/callback", getAppUrl());
+  url.searchParams.set("next", "/auth/reset");
+  return url.toString();
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -51,6 +57,7 @@ function LoginForm() {
   const [selectedPlan, setSelectedPlan] = useState<ActivePlanId | null>(null);
   const [source, setSource] = useState("direct");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -60,11 +67,19 @@ function LoginForm() {
     const modeParam = searchParams.get("mode");
     const planParam = getActivePlan(searchParams.get("plan"));
     const sourceParam = searchParams.get("source");
+    const authErrorParam = searchParams.get("auth_error");
 
     if (emailParam) setEmail(emailParam);
     if (modeParam === "signup") setIsSignUp(true);
     if (planParam) setSelectedPlan(planParam);
     if (sourceParam) setSource(sourceParam);
+    if (authErrorParam === "email_link_invalid") {
+      setErrorMessage("That email link is invalid or has expired. Please request a new one.");
+    } else if (searchParams.get("password_updated") === "1") {
+      setStatusMessage("Password updated. Sign in with your new password.");
+    } else if (searchParams.get("email_changed") === "1") {
+      setStatusMessage("Email address updated. Please sign in again.");
+    }
   }, [searchParams]);
 
   const billingPath = useMemo(() => buildBillingPath(selectedPlan), [selectedPlan]);
@@ -75,7 +90,7 @@ function LoginForm() {
     setIsSubmitting(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://app.fbazn.com/auth/callback?next=/auth/reset",
+      redirectTo: buildPasswordResetRedirectUrl(),
     });
     if (error) {
       setErrorMessage(error.message);
@@ -277,6 +292,12 @@ function LoginForm() {
             <p className="mt-1 text-sm text-[rgb(var(--text))]">
               {ACTIVE_PLAN_NAMES[selectedPlan]} plan. Card details are entered securely in Stripe Checkout.
             </p>
+          </div>
+        )}
+
+        {statusMessage && (
+          <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {statusMessage}
           </div>
         )}
 
