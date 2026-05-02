@@ -1,12 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/tools", "/privacy", "/free-tools"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/tools", "/privacy", "/free-tools"];
 // Paths authenticated users can always access regardless of subscription
 const BILLING_PATHS = ["/billing", "/api/stripe"];
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: request.headers },
   });
 

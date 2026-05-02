@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getPlanByPriceId } from "@/lib/plans";
-import { createClient } from "@supabase/supabase-js";
+import { getStripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 
-// Admin client — bypasses RLS, server-only
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+  }
+
+  return supabaseAdmin;
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
+  const stripe = getStripe();
 
   let event: Stripe.Event;
   try {
@@ -27,6 +35,7 @@ export async function POST(request: NextRequest) {
 
   switch (event.type) {
     case "checkout.session.completed": {
+      const supabaseAdmin = getSupabaseAdmin();
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode !== "subscription") break;
 
@@ -56,6 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     case "customer.subscription.updated": {
+      const supabaseAdmin = getSupabaseAdmin();
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.user_id;
       if (!userId) break;
@@ -82,6 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     case "customer.subscription.deleted": {
+      const supabaseAdmin = getSupabaseAdmin();
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.user_id;
       if (!userId) break;

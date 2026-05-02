@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useOptimistic, useTransition, useState } from "react";
+import { useOptimistic, useTransition } from "react";
 import type { SourcingItemRow } from "@/data/sourcingItems";
 import { restoreProduct, deleteProduct } from "@/app/actions/sourcingItems";
 
@@ -81,7 +81,7 @@ export default function ArchivedClient({ initialItems }: Props) {
             </span>
           </div>
           <p className="mt-0.5 text-sm text-[rgb(var(--muted))]">
-            Products you've archived — restore them to move back to your Sourcing List.
+            Products you&apos;ve archived - restore them to move back to your Sourcing List.
           </p>
         </div>
         <Link

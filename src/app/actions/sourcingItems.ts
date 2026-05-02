@@ -136,7 +136,7 @@ export async function updateSourcingItem(
 }
 
 /** Legacy alias — archives the item */
-export async function setSourcingStatus(id: string, _status: string) {
+export async function setSourcingStatus(id: string) {
   return archiveProduct(id);
 }
 

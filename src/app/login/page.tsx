@@ -1,8 +1,45 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+type ActivePlanId = "starter" | "pro";
+
+const ACTIVE_PLAN_NAMES: Record<ActivePlanId, string> = {
+  starter: "Starter",
+  pro: "Pro",
+};
+
+function getActivePlan(value: string | null): ActivePlanId | null {
+  return value === "starter" || value === "pro" ? value : null;
+}
+
+function getAppUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://app.fbazn.com";
+}
+
+function buildBillingPath(plan: ActivePlanId | null) {
+  if (!plan) return "/";
+
+  const params = new URLSearchParams({
+    plan,
+    checkout: "1",
+  });
+
+  return `/billing?${params.toString()}`;
+}
+
+function buildEmailRedirectUrl(plan: ActivePlanId | null) {
+  const url = new URL("/auth/callback", getAppUrl());
+
+  if (plan) {
+    url.searchParams.set("plan", plan);
+    url.searchParams.set("checkout", "1");
+  }
+
+  return url.toString();
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -11,6 +48,8 @@ function LoginForm() {
   const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<ActivePlanId | null>(null);
+  const [source, setSource] = useState("direct");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -19,9 +58,16 @@ function LoginForm() {
   useEffect(() => {
     const emailParam = searchParams.get("email");
     const modeParam = searchParams.get("mode");
+    const planParam = getActivePlan(searchParams.get("plan"));
+    const sourceParam = searchParams.get("source");
+
     if (emailParam) setEmail(emailParam);
     if (modeParam === "signup") setIsSignUp(true);
+    if (planParam) setSelectedPlan(planParam);
+    if (sourceParam) setSource(sourceParam);
   }, [searchParams]);
+
+  const billingPath = useMemo(() => buildBillingPath(selectedPlan), [selectedPlan]);
 
   const handleForgot = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,37 +91,56 @@ function LoginForm() {
     setIsSubmitting(true);
 
     const supabase = createClient();
-    const { error } = isSignUp
-      ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: "https://app.fbazn.com" } })
+    const result = isSignUp
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: buildEmailRedirectUrl(selectedPlan),
+            data: {
+              selected_plan: selectedPlan,
+              signup_source: source,
+            },
+          },
+        })
       : await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      setErrorMessage(error.message ?? "Unable to authenticate. Please try again.");
+    if (result.error) {
+      setErrorMessage(result.error.message ?? "Unable to authenticate. Please try again.");
       setIsSubmitting(false);
       return;
     }
 
     if (isSignUp) {
-      // Trigger welcome email drip — fire and forget
       fetch("https://n8n.fbazn.com/webhook/welcome-drip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: { email } }),
+        body: JSON.stringify({
+          user: { email },
+          plan: selectedPlan,
+          source,
+        }),
       }).catch(() => {});
-      // Show verify email screen — user can't log in until confirmed
+
+      if (result.data.session) {
+        router.replace(billingPath);
+        router.refresh();
+        return;
+      }
+
       setEmailSent(true);
       setIsSubmitting(false);
       return;
     }
 
-    router.replace("/");
+    router.replace(billingPath);
     router.refresh();
   };
 
   if (emailSent) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 shadow-sm text-center">
+        <div className="w-full max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
             <svg className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
@@ -83,12 +148,14 @@ function LoginForm() {
           </div>
           <h1 className="text-xl font-semibold text-[rgb(var(--text))]">Check your inbox</h1>
           <p className="mt-2 text-sm text-[rgb(var(--muted))]">
-            We sent a confirmation link to <span className="font-medium text-[rgb(var(--text))]">{email}</span>.<br />
-            Click the link to activate your account.
+            We sent a confirmation link to <span className="font-medium text-[rgb(var(--text))]">{email}</span>.
+            <br />
+            Confirm your account, then we will take you to checkout for your selected trial.
           </p>
           <p className="mt-6 text-xs text-[rgb(var(--muted))]">
-            Didn&apos;t receive it? Check your spam folder or{" "}
+            Did not receive it? Check your spam folder or{" "}
             <button
+              type="button"
               onClick={() => setEmailSent(false)}
               className="font-semibold text-indigo-500 hover:text-indigo-400"
             >
@@ -197,10 +264,21 @@ function LoginForm() {
           </h1>
           <p className="text-sm text-[rgb(var(--muted))]">
             {isSignUp
-              ? "Set up your workspace access in seconds."
+              ? "Create your account, confirm your email, then complete secure Stripe checkout."
               : "Sign in to continue to your sourcing workspace."}
           </p>
         </div>
+
+        {selectedPlan && (
+          <div className="mt-5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
+              Selected trial plan
+            </p>
+            <p className="mt-1 text-sm text-[rgb(var(--text))]">
+              {ACTIVE_PLAN_NAMES[selectedPlan]} plan. Card details are entered securely in Stripe Checkout.
+            </p>
+          </div>
+        )}
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <label className="flex flex-col gap-2 text-sm font-medium text-[rgb(var(--text))]">
@@ -233,7 +311,7 @@ function LoginForm() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="h-11 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg-elevated))] px-3 text-sm text-[rgb(var(--text))] shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="••••••••"
+              placeholder="Password"
               required
             />
           </div>
@@ -252,7 +330,7 @@ function LoginForm() {
             {isSubmitting
               ? "Working..."
               : isSignUp
-                ? "Create account"
+                ? "Create account and continue"
                 : "Sign in"}
           </button>
         </form>

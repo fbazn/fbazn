@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { PLANS, PLAN_TRIAL_DAYS, type PlanId } from "@/lib/plans";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.fbazn.com";
 
+  const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     ...customerData,
     mode: "subscription",
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
       metadata: { user_id: user.id, plan: plan.id },
     },
     success_url: `${baseUrl}/billing?success=true`,
-    cancel_url: `${baseUrl}/billing`,
+    cancel_url: `${baseUrl}/billing?${new URLSearchParams({
+      checkout: "canceled",
+      plan: plan.id,
+    }).toString()}`,
     metadata: { user_id: user.id, plan: plan.id },
   });
 

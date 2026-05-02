@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "https://www.amazon.co.uk",
@@ -7,10 +7,18 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+  }
+
+  return supabaseAdmin;
+}
 
 // Preflight — Chrome extension sends this before POST from amazon.co.uk
 export async function OPTIONS() {
@@ -18,6 +26,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
   // ── Auth diagnostics ────────────────────────────────────────────────────────
   const auth = request.headers.get("authorization");
   console.log("[FBAZN leads] Authorization header present:", !!auth);
