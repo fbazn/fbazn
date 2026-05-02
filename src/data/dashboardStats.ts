@@ -5,7 +5,7 @@ export type DashboardStats = {
   totalSaved: number;
   totalRejected: number;
   totalReview: number;
-  projectedProfit: number;
+  avgProfit: number;
   avgRoi: number;
 };
 
@@ -23,7 +23,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalSaved: 0,
       totalRejected: 0,
       totalReview: 0,
-      projectedProfit: 0,
+      avgProfit: 0,
       avgRoi: 0,
     };
   }
@@ -37,10 +37,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   // rejected status items
   const rejected = rows.filter((r) => r.status === "rejected");
 
-  const projectedProfit = active.reduce(
-    (sum, r) => sum + (r.net_profit ?? 0),
-    0,
-  );
+  const profitValues = active
+    .map((r) => r.net_profit)
+    .filter((v): v is number => v != null);
+  const avgProfit =
+    profitValues.length > 0
+      ? profitValues.reduce((sum, value) => sum + value, 0) / profitValues.length
+      : 0;
 
   const roiValues = active
     .map((r) => r.roi)
@@ -55,7 +58,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalSaved: active.length, // kept for UI compat (shows in "Saved leads" card)
     totalRejected: rejected.length,
     totalReview: inReview.length,
-    projectedProfit,
+    avgProfit,
     avgRoi: Math.round(avgRoi),
   };
 }

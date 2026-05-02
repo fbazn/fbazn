@@ -25,9 +25,9 @@ export default async function DashboardPage() {
       accent: "amber",
     },
     {
-      label: "Projected profit",
-      value: currencyFmt(stats.projectedProfit),
-      sub: "From saved leads",
+      label: "Average profit",
+      value: currencyFmt(stats.avgProfit),
+      sub: "Per saved lead",
       accent: "indigo",
     },
     {
