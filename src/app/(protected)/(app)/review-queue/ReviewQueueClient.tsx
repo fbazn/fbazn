@@ -503,6 +503,147 @@ function SupplierSection({
   );
 }
 
+// ── Keepa Section ─────────────────────────────────────────────────────────
+
+interface KeepaPayload {
+  asin: string;
+  monthlySold: number | null;
+  salesRankCurrent: number | null;
+  salesRank30Avg: number | null;
+  salesRank90Avg: number | null;
+  buyBoxCurrent: number | null;
+  buyBox30Avg: number | null;
+  chartUrl: string;
+}
+
+function KeepaSection({ asin }: { asin: string }) {
+  const [data, setData] = useState<KeepaPayload | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "upgrade" | "error">("loading");
+  const [chartOpen, setChartOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient()
+        .auth.getSession()
+        .then(async ({ data: { session } }) => {
+          if (!session || cancelled) return;
+          const res = await fetch(`/api/keepa/product?asin=${asin}`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (cancelled) return;
+          if (res.status === 403) { setState("upgrade"); return; }
+          if (!res.ok) { setState("error"); return; }
+          const json = await res.json() as KeepaPayload;
+          setData(json);
+          setState("ready");
+        })
+        .catch(() => { if (!cancelled) setState("error"); });
+    });
+    return () => { cancelled = true; };
+  }, [asin]);
+
+  const fmt = (n: number | null) =>
+    n == null ? "—" : n.toLocaleString("en-GB");
+
+  const fmtGbp = (n: number | null) =>
+    n == null ? "—" : `£${n.toFixed(2)}`;
+
+  return (
+    <div className="border-b border-[rgb(var(--border))] px-5 py-4">
+      {/* Section header */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
+          Market Data <span className="ml-1 rounded-sm bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400">PRO</span>
+        </p>
+        {state === "ready" && data && (
+          <button
+            onClick={() => setChartOpen((o) => !o)}
+            className="flex items-center gap-1 rounded border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))] transition hover:border-indigo-500/50 hover:text-indigo-400"
+          >
+            {chartOpen ? "Hide chart ▲" : "Price chart ▼"}
+          </button>
+        )}
+      </div>
+
+      {/* States */}
+      {state === "loading" && (
+        <div className="grid grid-cols-3 gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-14 animate-pulse rounded-lg bg-[rgb(var(--panel))]" />
+          ))}
+        </div>
+      )}
+
+      {state === "upgrade" && (
+        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-center">
+          <p className="text-xs font-semibold text-indigo-400">Pro plan required</p>
+          <p className="mt-0.5 text-[11px] text-[rgb(var(--muted))]">
+            Sales data and price history are available on the Pro plan.
+          </p>
+          <a
+            href="/billing"
+            className="mt-2 inline-block rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-indigo-500"
+          >
+            Upgrade to Pro →
+          </a>
+        </div>
+      )}
+
+      {state === "error" && (
+        <p className="text-xs text-[rgb(var(--muted))]">
+          Could not load market data — try again later.
+        </p>
+      )}
+
+      {state === "ready" && data && (
+        <>
+          {/* Stats grid */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Sales / Month", value: data.monthlySold != null ? `~${fmt(data.monthlySold)}` : "—", highlight: true },
+              { label: "BSR (Current)", value: fmt(data.salesRankCurrent) },
+              { label: "BSR (30-day avg)", value: fmt(data.salesRank30Avg) },
+              { label: "Buy Box Now", value: fmtGbp(data.buyBoxCurrent) },
+              { label: "Buy Box (30d avg)", value: fmtGbp(data.buyBox30Avg) },
+              { label: "BSR (90-day avg)", value: fmt(data.salesRank90Avg) },
+            ].map(({ label, value, highlight }) => (
+              <div
+                key={label}
+                className={`rounded-lg border p-2.5 text-center ${
+                  highlight
+                    ? "border-indigo-500/30 bg-indigo-500/5"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                }`}
+              >
+                <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
+                <p className={`mt-0.5 text-xs font-bold font-mono ${highlight ? "text-indigo-400" : "text-[rgb(var(--text))]"}`}>
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Keepa chart */}
+          {chartOpen && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))]">
+              <p className="border-b border-[rgb(var(--border))] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
+                90-day price & rank history · Keepa
+              </p>
+              <img
+                src={data.chartUrl}
+                alt="Keepa price history chart"
+                className="w-full"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── ReviewPanel ────────────────────────────────────────────────────────────
 
 type PanelSaveState = "idle" | "saving" | "saved" | "error";
@@ -710,6 +851,9 @@ function ReviewPanel({
               ))}
             </div>
           </div>
+
+          {/* Keepa market data */}
+          <KeepaSection asin={item.asin} />
 
           <div className="space-y-5 p-5">
 
