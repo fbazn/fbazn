@@ -32,7 +32,7 @@ export const PLANS: Plan[] = [
     price: 25,
     priceId: process.env.STRIPE_PRICE_PRO!,
     description: "For sellers who want unlimited lookups and deeper product insight.",
-    comingSoon: false,
+    comingSoon: true,
     features: [
       "Unlimited product lookups",
       "1 linked Seller account",

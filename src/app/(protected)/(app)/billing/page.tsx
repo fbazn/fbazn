@@ -15,8 +15,8 @@ interface Subscription {
   cancel_at_period_end: boolean;
 }
 
-function getActiveCheckoutPlan(value: string | null): Exclude<PlanId, "business"> | null {
-  return value === "starter" || value === "pro" ? value : null;
+function getActiveCheckoutPlan(value: string | null): Exclude<PlanId, "business" | "pro"> | null {
+  return value === "starter" ? value : null;
 }
 
 function daysUntil(dateStr: string): number {
@@ -259,7 +259,7 @@ function BillingContent() {
         </div>
       ) : (
         <StatusMessage tone="warning">
-          No active subscription. Choose Starter or Pro to start your 7-day trial with secure Stripe checkout.
+          No active subscription. Choose Starter to start your 7-day free trial with secure Stripe checkout.
         </StatusMessage>
       )}
 
@@ -273,7 +273,7 @@ function BillingContent() {
           </div>
           {!sub && (
             <p className="max-w-sm text-right text-xs text-[rgb(var(--muted))]">
-              7-day free trial on Starter and Pro. Card required in secure Stripe checkout.
+              7-day free trial on Starter. Card required in secure Stripe checkout.
             </p>
           )}
         </div>
