@@ -521,8 +521,6 @@ interface KeepaPayload {
   buyBoxLow: number | null;
   buyBoxHigh: number | null;
   volatility: "high" | "medium" | "low" | null;
-  chartUrls: { d30: string; d90: string; d180: string; d365: string };
-  chartUrl: string; // legacy
 }
 
 const CHART_RANGES = [
@@ -560,11 +558,19 @@ function KDivider({ invisible }: { invisible?: boolean }) {
   );
 }
 
+type ChartRangeKey = "d30" | "d90" | "d180" | "d365";
+type ChartState = "idle" | "loading" | "ready" | "error";
+
 function KeepaSection({ asin }: { asin: string }) {
   const [data, setData] = useState<KeepaPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "upgrade" | "error">("loading");
-  const [chartRange, setChartRange] = useState<"d30" | "d90" | "d180" | "d365" | null>(null);
+  const [chartRange, setChartRange] = useState<ChartRangeKey | null>(null);
+  // Chart blob URLs cached per range for this session
+  const [chartBlobUrls, setChartBlobUrls] = useState<Partial<Record<ChartRangeKey, string>>>({});
+  const [chartState, setChartState] = useState<ChartState>("idle");
+  const sessionRef = useState<{ access_token: string } | null>(null);
 
+  // ── Fetch product data ────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     import("@/lib/supabase/client").then(({ createClient }) => {
@@ -572,6 +578,7 @@ function KeepaSection({ asin }: { asin: string }) {
         .auth.getSession()
         .then(async ({ data: { session } }) => {
           if (!session || cancelled) return;
+          sessionRef[1](session);
           const res = await fetch(`/api/keepa/product?asin=${asin}`, {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
@@ -587,6 +594,32 @@ function KeepaSection({ asin }: { asin: string }) {
     return () => { cancelled = true; };
   }, [asin]);
 
+  // ── Fetch chart lazily when range tab selected ────────────────────────────
+  useEffect(() => {
+    if (!chartRange || !sessionRef[0]) return;
+    if (chartBlobUrls[chartRange]) return; // already fetched
+    setChartState("loading");
+    const rangeNum = chartRange.replace("d", "");
+    fetch(`/api/keepa/chart?asin=${asin}&range=${rangeNum}`, {
+      headers: { Authorization: `Bearer ${sessionRef[0].access_token}` },
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("chart error");
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        setChartBlobUrls((prev) => ({ ...prev, [chartRange]: url }));
+        setChartState("ready");
+      })
+      .catch(() => setChartState("error"));
+  }, [chartRange, asin]);
+
+  // Revoke blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(chartBlobUrls).forEach((u) => u && URL.revokeObjectURL(u));
+    };
+  }, []);
+
   const fmt = (n: number | null) =>
     n == null ? "—" : n.toLocaleString("en-GB");
 
@@ -594,7 +627,7 @@ function KeepaSection({ asin }: { asin: string }) {
     n == null ? "—" : `£${n.toFixed(2)}`;
 
   const vcfg = data?.volatility ? VOLATILITY_CFG[data.volatility] : null;
-  const activeChartUrl = chartRange && data?.chartUrls ? data.chartUrls[chartRange] : null;
+  const activeChartUrl = chartRange ? chartBlobUrls[chartRange] : null;
 
   return (
     <div className="border-b border-[rgb(var(--border))] px-5 py-4">
@@ -694,18 +727,29 @@ function KeepaSection({ asin }: { asin: string }) {
             )}
           </div>
 
-          {/* Chart panel */}
-          {activeChartUrl && (
-            <div className="mt-3 overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))]">
-              <p className="border-b border-[rgb(var(--border))] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
-                {CHART_RANGES.find((r) => r.key === chartRange)?.label} price &amp; rank history · Keepa
+          {/* Chart panel — lazy loaded on range tab click */}
+          {chartRange && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-[rgb(var(--border))]">
+              <p className="border-b border-[rgb(var(--border))] bg-[rgb(var(--panel))] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
+                {CHART_RANGES.find((r) => r.key === chartRange)?.label} BSR &amp; Buy Box · Keepa
               </p>
-              <img
-                src={activeChartUrl}
-                alt={`Keepa ${chartRange} price history chart`}
-                className="w-full"
-                loading="lazy"
-              />
+              {chartState === "loading" && (
+                <div className="flex h-[220px] items-center justify-center bg-[rgb(var(--panel))]">
+                  <span className="text-xs text-[rgb(var(--muted))]">Loading chart…</span>
+                </div>
+              )}
+              {chartState === "error" && (
+                <div className="flex h-[220px] items-center justify-center bg-[rgb(var(--panel))]">
+                  <span className="text-xs text-[rgb(var(--muted))]">Chart unavailable</span>
+                </div>
+              )}
+              {activeChartUrl && (
+                <img
+                  src={activeChartUrl}
+                  alt={`Keepa ${chartRange} BSR and buy box chart`}
+                  className="w-full"
+                />
+              )}
             </div>
           )}
         </>

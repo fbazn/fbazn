@@ -155,14 +155,8 @@ export async function GET(request: NextRequest) {
     else                                 volatility = "low";
   }
 
-  // ── Chart URLs (free — no token cost) ────────────────────────────────────
-  const chartBase = `https://graph.keepa.com/pricehistory.png?asin=${asin}&domain=2&salesrank=1&bb=1`;
-  const chartUrls = {
-    d30:  `${chartBase}&range=30`,
-    d90:  `${chartBase}&range=90`,
-    d180: `${chartBase}&range=180`,
-    d365: `${chartBase}&range=365`,
-  };
+  // Charts are served on-demand via /api/keepa/chart (1 token per request).
+  // No chart URLs stored in the payload — clients fetch them lazily.
 
   const payload: KeepaPayload = {
     asin,
@@ -183,10 +177,6 @@ export async function GET(request: NextRequest) {
     buyBoxHigh,
     // Signals
     volatility,
-    // Charts
-    chartUrls,
-    // Legacy (keep for backward compat with cached data)
-    chartUrl: chartUrls.d90,
   };
 
   // ── Upsert cache ──────────────────────────────────────────────────────────
@@ -241,7 +231,5 @@ export interface KeepaPayload {
   buyBoxHigh:        number | null;
   // Signals
   volatility:        "high" | "medium" | "low" | null;
-  // Charts
-  chartUrls:         { d30: string; d90: string; d180: string; d365: string };
-  chartUrl:          string; // legacy
+  // Charts served on-demand via /api/keepa/chart — not stored here
 }
