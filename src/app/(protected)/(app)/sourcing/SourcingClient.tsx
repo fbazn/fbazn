@@ -10,6 +10,7 @@ import {
   type Supplier,
   type ProductSupplier,
 } from "@/app/actions/suppliers";
+import { KeepaSection } from "@/components/app/KeepaSection";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -495,6 +496,9 @@ function ProductPanel({
               ))}
             </div>
           </div>
+
+          {/* Market Data */}
+          <KeepaSection asin={item.asin} />
 
           <div className="space-y-5 p-5">
 

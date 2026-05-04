@@ -142,6 +142,42 @@ export function Sidebar({
           <SidebarItemStrip isExpanded={isExpanded} items={recentItems} />
           <div className="mt-auto flex flex-col gap-4">
             <SidebarNav items={secondaryItems} isExpanded={isExpanded} />
+
+            {/* Download Extension — shown to new users until they have items */}
+            {reviewQueueCount <= 1 && (
+              isExpanded ? (
+                <a
+                  href="https://chromewebstore.google.com/detail/fbazn"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex items-center gap-2.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 transition hover:border-indigo-500/60 hover:bg-indigo-500/20"
+                >
+                  <svg className="h-4 w-4 flex-shrink-0 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-indigo-300">Download Extension</p>
+                    <p className="text-[10px] text-indigo-400/70">Chrome Web Store</p>
+                  </div>
+                </a>
+              ) : (
+                <a
+                  href="https://chromewebstore.google.com/detail/fbazn"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Download Extension"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 transition hover:border-indigo-500/60 hover:bg-indigo-500/20 mx-auto"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </a>
+              )
+            )}
           </div>
         </div>
 
