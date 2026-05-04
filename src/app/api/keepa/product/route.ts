@@ -13,6 +13,7 @@ const KEEPA_DOMAIN = 2; // Amazon UK
 // Keepa CSV data-type indices
 const IDX_SALES_RANK = 3;
 const IDX_BUY_BOX   = 18; // index 18 = New FBA / Buy Box (pence)
+const IDX_AMAZON     = 0;  // index 0  = Amazon own price (fallback for Amazon-sold items)
 
 // Volatility thresholds
 const VOLATILITY_HIGH   = 0.40; // 40%+ swing
@@ -110,7 +111,9 @@ export async function GET(request: NextRequest) {
 
   if (cached) {
     const age = Date.now() - new Date(cached.fetched_at).getTime();
-    if (age < CACHE_TTL_MS) {
+    // Also reject cache entries that predate the series field (schema guard)
+    const hasSeriesField = cached.data && "series" in cached.data;
+    if (age < CACHE_TTL_MS && hasSeriesField) {
       return NextResponse.json(cached.data, { headers: CORS });
     }
   }
@@ -171,14 +174,21 @@ export async function GET(request: NextRequest) {
   const bsrWorst = mmVal(stats?.max, IDX_SALES_RANK);
 
   // ── Buy box (pence → pounds) ──────────────────────────────────────────────
+  // Keepa index 18 = New FBA / Buy Box price (3rd-party FBA sellers)
+  // Keepa index 0  = Amazon own price (Amazon-sold products)
+  // For Amazon-sold products index 18 is empty — fall back to index 0.
   const pence = (v: number | null | undefined): number | null =>
     typeof v === "number" && v > 0 ? v / 100 : null;
 
-  const buyBoxCurrent = pence(stats?.current?.[IDX_BUY_BOX]);
-  const buyBox30Avg   = pence(stats?.avg30?.[IDX_BUY_BOX]);
-  const buyBox90Avg   = pence(stats?.avg90?.[IDX_BUY_BOX]);
-  const buyBoxLow     = pence(mmVal(stats?.min, IDX_BUY_BOX));
-  const buyBoxHigh    = pence(mmVal(stats?.max, IDX_BUY_BOX));
+  // Helper: try IDX_BUY_BOX first, fall back to IDX_AMAZON
+  const bbOrAz = (arr: (number | null)[] | undefined): number | null =>
+    pence(arr?.[IDX_BUY_BOX]) ?? pence(arr?.[IDX_AMAZON]);
+
+  const buyBoxCurrent = bbOrAz(stats?.current);
+  const buyBox30Avg   = bbOrAz(stats?.avg30);
+  const buyBox90Avg   = bbOrAz(stats?.avg90);
+  const buyBoxLow     = pence(mmVal(stats?.min, IDX_BUY_BOX)) ?? pence(mmVal(stats?.min, IDX_AMAZON));
+  const buyBoxHigh    = pence(mmVal(stats?.max, IDX_BUY_BOX)) ?? pence(mmVal(stats?.max, IDX_AMAZON));
 
   // ── Volatility ────────────────────────────────────────────────────────────
   let volatility: "high" | "medium" | "low" | null = null;
@@ -190,9 +200,11 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Time-series data (from csv, 0 extra tokens — included in history=1) ──
+  // For buy box series: prefer index 18, fall back to index 0 (Amazon price)
+  const bbSeriesIdx = (product.csv?.[IDX_BUY_BOX]?.length ?? 0) > 0 ? IDX_BUY_BOX : IDX_AMAZON;
   const series = {
     bsr: parseCSVSeries(product.csv, IDX_SALES_RANK),
-    bb:  parseCSVSeries(product.csv, IDX_BUY_BOX),
+    bb:  parseCSVSeries(product.csv, bbSeriesIdx),
   };
 
   const payload: KeepaPayload = {
