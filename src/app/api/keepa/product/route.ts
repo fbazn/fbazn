@@ -120,19 +120,31 @@ export async function GET(request: NextRequest) {
   const salesRank90Avg    = stats?.avg90?.[IDX_SALES_RANK]    ?? null;
   const salesRank180Avg   = stats?.avg180?.[IDX_SALES_RANK]   ?? null;
   const salesRank365Avg   = stats?.avg365?.[IDX_SALES_RANK]   ?? null;
+  // Keepa stats.min / stats.max entries are [keepaTime, value] pairs.
+  // The actual value is always at index [1].
+  const mmVal = (
+    arr: ([(number | null), (number | null)] | null)[] | undefined,
+    idx: number,
+  ): number | null => {
+    const entry = arr?.[idx];
+    if (!Array.isArray(entry)) return null;
+    const v = entry[1];
+    return typeof v === "number" && v > 0 ? v : null;
+  };
+
   // min = best rank (lowest number), max = worst rank (highest number)
-  const bsrBest  = stats?.min?.[IDX_SALES_RANK] ?? null;
-  const bsrWorst = stats?.max?.[IDX_SALES_RANK] ?? null;
+  const bsrBest  = mmVal(stats?.min, IDX_SALES_RANK);
+  const bsrWorst = mmVal(stats?.max, IDX_SALES_RANK);
 
   // ── Buy box (pence → pounds) ──────────────────────────────────────────────
   const pence = (v: number | null | undefined): number | null =>
-    v != null && v > 0 ? v / 100 : null;
+    typeof v === "number" && v > 0 ? v / 100 : null;
 
   const buyBoxCurrent = pence(stats?.current?.[IDX_BUY_BOX]);
   const buyBox30Avg   = pence(stats?.avg30?.[IDX_BUY_BOX]);
   const buyBox90Avg   = pence(stats?.avg90?.[IDX_BUY_BOX]);
-  const buyBoxLow     = pence(stats?.min?.[IDX_BUY_BOX]);
-  const buyBoxHigh    = pence(stats?.max?.[IDX_BUY_BOX]);
+  const buyBoxLow     = pence(mmVal(stats?.min, IDX_BUY_BOX));
+  const buyBoxHigh    = pence(mmVal(stats?.max, IDX_BUY_BOX));
 
   // ── Volatility ────────────────────────────────────────────────────────────
   let volatility: "high" | "medium" | "low" | null = null;
@@ -144,7 +156,7 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Chart URLs (free — no token cost) ────────────────────────────────────
-  const chartBase = `https://graph.keepa.com/pricehistory.png?asin=${asin}&country=gb&salesrank=1&bb=1`;
+  const chartBase = `https://graph.keepa.com/pricehistory.png?asin=${asin}&domain=2&salesrank=1&bb=1`;
   const chartUrls = {
     d30:  `${chartBase}&range=30`,
     d90:  `${chartBase}&range=90`,
@@ -195,8 +207,9 @@ interface KeepaStats {
   avg90?:    (number | null)[];
   avg180?:   (number | null)[];
   avg365?:   (number | null)[];
-  min?:      (number | null)[];
-  max?:      (number | null)[];
+  // Each element is a [keepaTime, value] pair — value is at [1]
+  min?:      ([(number | null), (number | null)] | null)[];
+  max?:      ([(number | null), (number | null)] | null)[];
 }
 
 interface KeepaProduct {

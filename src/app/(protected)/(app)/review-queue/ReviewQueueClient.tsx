@@ -542,7 +542,7 @@ function KStat({
   label, value, color, sub,
 }: { label: string; value: string; color?: string; sub?: boolean }) {
   return (
-    <div className="flex flex-col items-center min-w-0">
+    <div className="flex flex-1 flex-col items-center min-w-0">
       <span className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))] whitespace-nowrap">{label}</span>
       <span className={`font-mono font-bold whitespace-nowrap ${sub ? "text-[11px]" : "text-xs"} ${color ?? "text-[rgb(var(--text))]"}`}>
         {value}
