@@ -18,6 +18,40 @@ const IDX_BUY_BOX   = 18; // index 18 = New FBA / Buy Box (pence)
 const VOLATILITY_HIGH   = 0.40; // 40%+ swing
 const VOLATILITY_MEDIUM = 0.20; // 20%+ swing
 
+// Keepa epoch: minutes since 2011-01-01 UTC
+const KEEPA_EPOCH_MS = new Date("2011-01-01T00:00:00Z").getTime();
+
+/**
+ * Parse a Keepa CSV flat array [keepaTime, value, keepaTime, value, ...]
+ * into unix-ms / value pairs, filtered to the last maxDays and downsampled.
+ */
+function parseCSVSeries(
+  csv: (number[] | null | undefined)[] | undefined,
+  typeIdx: number,
+  maxDays = 365,
+  maxPoints = 400,
+): { t: number; v: number }[] {
+  const raw = csv?.[typeIdx];
+  if (!Array.isArray(raw) || raw.length < 2) return [];
+
+  const cutoff = Date.now() - maxDays * 86_400_000;
+  const pts: { t: number; v: number }[] = [];
+
+  for (let i = 0; i + 1 < raw.length; i += 2) {
+    const keepaMin = raw[i];
+    const val      = raw[i + 1];
+    if (keepaMin < 0 || val < 0) continue; // -1 = not tracked
+    const t = KEEPA_EPOCH_MS + keepaMin * 60_000;
+    if (t < cutoff) continue;
+    pts.push({ t, v: val });
+  }
+
+  if (pts.length <= maxPoints) return pts;
+  // Uniform downsample — keep first + last + evenly spaced midpoints
+  const step = (pts.length - 1) / (maxPoints - 1);
+  return Array.from({ length: maxPoints }, (_, i) => pts[Math.round(i * step)]);
+}
+
 let supabaseAdmin: SupabaseClient | null = null;
 function getSupabase() {
   if (!supabaseAdmin) {
@@ -155,8 +189,11 @@ export async function GET(request: NextRequest) {
     else                                 volatility = "low";
   }
 
-  // Charts are served on-demand via /api/keepa/chart (1 token per request).
-  // No chart URLs stored in the payload — clients fetch them lazily.
+  // ── Time-series data (from csv, 0 extra tokens — included in history=1) ──
+  const series = {
+    bsr: parseCSVSeries(product.csv, IDX_SALES_RANK),
+    bb:  parseCSVSeries(product.csv, IDX_BUY_BOX),
+  };
 
   const payload: KeepaPayload = {
     asin,
@@ -177,6 +214,8 @@ export async function GET(request: NextRequest) {
     buyBoxHigh,
     // Signals
     volatility,
+    // Time-series for interactive chart (parsed from csv, no extra token cost)
+    series,
   };
 
   // ── Upsert cache ──────────────────────────────────────────────────────────
@@ -206,6 +245,7 @@ interface KeepaProduct {
   asin: string;
   monthlySold?: number;
   stats?: KeepaStats;
+  csv?:  (number[] | null | undefined)[];
 }
 
 interface KeepaResponse {
@@ -231,5 +271,9 @@ export interface KeepaPayload {
   buyBoxHigh:        number | null;
   // Signals
   volatility:        "high" | "medium" | "low" | null;
-  // Charts served on-demand via /api/keepa/chart — not stored here
+  // Time-series for interactive SVG chart (parsed from csv, no extra token cost)
+  series: {
+    bsr: { t: number; v: number }[];
+    bb:  { t: number; v: number }[];
+  };
 }

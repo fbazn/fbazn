@@ -8,6 +8,7 @@ import {
   useEffect,
   useRef,
 } from "react";
+import { KeepaChart } from "@/components/KeepaChart";
 import {
   updateQueueStatus,
   deleteQueueItem,
@@ -521,19 +522,16 @@ interface KeepaPayload {
   buyBoxLow: number | null;
   buyBoxHigh: number | null;
   volatility: "high" | "medium" | "low" | null;
+  series: {
+    bsr: { t: number; v: number }[];
+    bb:  { t: number; v: number }[];
+  };
 }
 
-const CHART_RANGES = [
-  { key: "d30" as const, label: "30D" },
-  { key: "d90" as const, label: "90D" },
-  { key: "d180" as const, label: "180D" },
-  { key: "d365" as const, label: "365D" },
-];
-
 const VOLATILITY_CFG = {
-  high:   { color: "text-rose-400",   bg: "bg-rose-500/10 border-rose-500/30",   icon: "⚡", text: "HIGH VOLATILITY" },
-  medium: { color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/30", icon: "〜", text: "MED VOLATILITY"  },
-  low:    { color: "text-emerald-400",bg: "bg-emerald-500/10 border-emerald-500/30", icon: "✓", text: "STABLE PRICE" },
+  high:   { color: "text-rose-400",    bg: "bg-rose-500/10 border-rose-500/30",       icon: "⚡", text: "HIGH VOLATILITY" },
+  medium: { color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/30",     icon: "〜", text: "MED VOLATILITY"  },
+  low:    { color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30", icon: "✓", text: "STABLE PRICE"     },
 };
 
 function KStat({
@@ -558,17 +556,9 @@ function KDivider({ invisible }: { invisible?: boolean }) {
   );
 }
 
-type ChartRangeKey = "d30" | "d90" | "d180" | "d365";
-type ChartState = "idle" | "loading" | "ready" | "error";
-
 function KeepaSection({ asin }: { asin: string }) {
   const [data, setData] = useState<KeepaPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "upgrade" | "error">("loading");
-  const [chartRange, setChartRange] = useState<ChartRangeKey | null>(null);
-  // Chart blob URLs cached per range for this session
-  const [chartBlobUrls, setChartBlobUrls] = useState<Partial<Record<ChartRangeKey, string>>>({});
-  const [chartState, setChartState] = useState<ChartState>("idle");
-  const sessionRef = useState<{ access_token: string } | null>(null);
 
   // ── Fetch product data ────────────────────────────────────────────────────
   useEffect(() => {
@@ -578,7 +568,6 @@ function KeepaSection({ asin }: { asin: string }) {
         .auth.getSession()
         .then(async ({ data: { session } }) => {
           if (!session || cancelled) return;
-          sessionRef[1](session);
           const res = await fetch(`/api/keepa/product?asin=${asin}`, {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
@@ -594,32 +583,6 @@ function KeepaSection({ asin }: { asin: string }) {
     return () => { cancelled = true; };
   }, [asin]);
 
-  // ── Fetch chart lazily when range tab selected ────────────────────────────
-  useEffect(() => {
-    if (!chartRange || !sessionRef[0]) return;
-    if (chartBlobUrls[chartRange]) return; // already fetched
-    setChartState("loading");
-    const rangeNum = chartRange.replace("d", "");
-    fetch(`/api/keepa/chart?asin=${asin}&range=${rangeNum}`, {
-      headers: { Authorization: `Bearer ${sessionRef[0].access_token}` },
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error("chart error");
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        setChartBlobUrls((prev) => ({ ...prev, [chartRange]: url }));
-        setChartState("ready");
-      })
-      .catch(() => setChartState("error"));
-  }, [chartRange, asin]);
-
-  // Revoke blob URLs on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(chartBlobUrls).forEach((u) => u && URL.revokeObjectURL(u));
-    };
-  }, []);
-
   const fmt = (n: number | null) =>
     n == null ? "—" : n.toLocaleString("en-GB");
 
@@ -627,35 +590,17 @@ function KeepaSection({ asin }: { asin: string }) {
     n == null ? "—" : `£${n.toFixed(2)}`;
 
   const vcfg = data?.volatility ? VOLATILITY_CFG[data.volatility] : null;
-  const activeChartUrl = chartRange ? chartBlobUrls[chartRange] : null;
 
   return (
     <div className="border-b border-[rgb(var(--border))] px-5 py-4">
       {/* Section header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
           Market Data{" "}
           <span className="ml-1 rounded-sm bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400">
             PRO
           </span>
         </p>
-        {state === "ready" && (
-          <div className="flex items-center gap-1">
-            {CHART_RANGES.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setChartRange((r) => (r === key ? null : key))}
-                className={`rounded px-2 py-0.5 text-[10px] font-semibold transition ${
-                  chartRange === key
-                    ? "bg-indigo-600 text-white"
-                    : "border border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-indigo-500/50 hover:text-indigo-400"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Loading */}
@@ -709,13 +654,13 @@ function KeepaSection({ asin }: { asin: string }) {
           </div>
 
           {/* Row 2 — BB Low/High | BSR Best/Worst | Volatility */}
-          <div className="flex items-center gap-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+          <div className="flex items-center gap-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 mb-3">
             <KDivider invisible />
-            <KStat label="BB Low"     value={fmtGbp(data.buyBoxLow)}   color="text-emerald-400" sub />
-            <KStat label="BB High"    value={fmtGbp(data.buyBoxHigh)}  color="text-rose-400"    sub />
+            <KStat label="BB Low"    value={fmtGbp(data.buyBoxLow)}   color="text-emerald-400" sub />
+            <KStat label="BB High"   value={fmtGbp(data.buyBoxHigh)}  color="text-rose-400"    sub />
             <KDivider />
-            <KStat label="BSR Best"   value={fmt(data.bsrBest)}        color="text-emerald-400" sub />
-            <KStat label="BSR Worst"  value={fmt(data.bsrWorst)}       color="text-rose-400"    sub />
+            <KStat label="BSR Best"  value={fmt(data.bsrBest)}        color="text-emerald-400" sub />
+            <KStat label="BSR Worst" value={fmt(data.bsrWorst)}       color="text-rose-400"    sub />
             <KDivider />
             {vcfg ? (
               <div className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${vcfg.bg} ${vcfg.color}`}>
@@ -727,29 +672,10 @@ function KeepaSection({ asin }: { asin: string }) {
             )}
           </div>
 
-          {/* Chart panel — lazy loaded on range tab click */}
-          {chartRange && (
-            <div className="mt-3 overflow-hidden rounded-lg border border-[rgb(var(--border))]">
-              <p className="border-b border-[rgb(var(--border))] bg-[rgb(var(--panel))] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
-                {CHART_RANGES.find((r) => r.key === chartRange)?.label} BSR &amp; Buy Box · Keepa
-              </p>
-              {chartState === "loading" && (
-                <div className="flex h-[220px] items-center justify-center bg-[rgb(var(--panel))]">
-                  <span className="text-xs text-[rgb(var(--muted))]">Loading chart…</span>
-                </div>
-              )}
-              {chartState === "error" && (
-                <div className="flex h-[220px] items-center justify-center bg-[rgb(var(--panel))]">
-                  <span className="text-xs text-[rgb(var(--muted))]">Chart unavailable</span>
-                </div>
-              )}
-              {activeChartUrl && (
-                <img
-                  src={activeChartUrl}
-                  alt={`Keepa ${chartRange} BSR and buy box chart`}
-                  className="w-full"
-                />
-              )}
+          {/* Interactive SVG chart */}
+          {data.series && (data.series.bsr.length > 0 || data.series.bb.length > 0) && (
+            <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3">
+              <KeepaChart series={data.series} rangeDays={90} />
             </div>
           )}
         </>
