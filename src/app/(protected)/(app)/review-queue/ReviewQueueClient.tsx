@@ -511,15 +511,59 @@ interface KeepaPayload {
   salesRankCurrent: number | null;
   salesRank30Avg: number | null;
   salesRank90Avg: number | null;
+  salesRank180Avg: number | null;
+  salesRank365Avg: number | null;
+  bsrBest: number | null;
+  bsrWorst: number | null;
   buyBoxCurrent: number | null;
   buyBox30Avg: number | null;
-  chartUrl: string;
+  buyBox90Avg: number | null;
+  buyBoxLow: number | null;
+  buyBoxHigh: number | null;
+  volatility: "high" | "medium" | "low" | null;
+  chartUrls: { d30: string; d90: string; d180: string; d365: string };
+  chartUrl: string; // legacy
+}
+
+const CHART_RANGES = [
+  { key: "d30" as const, label: "30D" },
+  { key: "d90" as const, label: "90D" },
+  { key: "d180" as const, label: "180D" },
+  { key: "d365" as const, label: "365D" },
+];
+
+const VOLATILITY_CFG = {
+  high:   { color: "text-rose-400",   bg: "bg-rose-500/10 border-rose-500/30",   icon: "⚡", text: "HIGH VOLATILITY" },
+  medium: { color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/30", icon: "〜", text: "MED VOLATILITY"  },
+  low:    { color: "text-emerald-400",bg: "bg-emerald-500/10 border-emerald-500/30", icon: "✓", text: "STABLE PRICE" },
+};
+
+function KStat({
+  label, value, color, sub,
+}: { label: string; value: string; color?: string; sub?: boolean }) {
+  return (
+    <div className="flex flex-col items-center min-w-0">
+      <span className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))] whitespace-nowrap">{label}</span>
+      <span className={`font-mono font-bold whitespace-nowrap ${sub ? "text-[11px]" : "text-xs"} ${color ?? "text-[rgb(var(--text))]"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function KDivider({ invisible }: { invisible?: boolean }) {
+  return (
+    <div
+      className="self-stretch"
+      style={{ width: 1, minHeight: 28, background: invisible ? "transparent" : "rgb(var(--border))" }}
+    />
+  );
 }
 
 function KeepaSection({ asin }: { asin: string }) {
   const [data, setData] = useState<KeepaPayload | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "upgrade" | "error">("loading");
-  const [chartOpen, setChartOpen] = useState(false);
+  const [chartRange, setChartRange] = useState<"d30" | "d90" | "d180" | "d365" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -549,32 +593,48 @@ function KeepaSection({ asin }: { asin: string }) {
   const fmtGbp = (n: number | null) =>
     n == null ? "—" : `£${n.toFixed(2)}`;
 
+  const vcfg = data?.volatility ? VOLATILITY_CFG[data.volatility] : null;
+  const activeChartUrl = chartRange && data?.chartUrls ? data.chartUrls[chartRange] : null;
+
   return (
     <div className="border-b border-[rgb(var(--border))] px-5 py-4">
       {/* Section header */}
       <div className="mb-3 flex items-center justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-[rgb(var(--muted))]">
-          Market Data <span className="ml-1 rounded-sm bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400">PRO</span>
+          Market Data{" "}
+          <span className="ml-1 rounded-sm bg-indigo-500/20 px-1.5 py-0.5 text-[9px] font-bold text-indigo-400">
+            PRO
+          </span>
         </p>
-        {state === "ready" && data && (
-          <button
-            onClick={() => setChartOpen((o) => !o)}
-            className="flex items-center gap-1 rounded border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] text-[rgb(var(--muted))] transition hover:border-indigo-500/50 hover:text-indigo-400"
-          >
-            {chartOpen ? "Hide chart ▲" : "Price chart ▼"}
-          </button>
+        {state === "ready" && (
+          <div className="flex items-center gap-1">
+            {CHART_RANGES.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setChartRange((r) => (r === key ? null : key))}
+                className={`rounded px-2 py-0.5 text-[10px] font-semibold transition ${
+                  chartRange === key
+                    ? "bg-indigo-600 text-white"
+                    : "border border-[rgb(var(--border))] text-[rgb(var(--muted))] hover:border-indigo-500/50 hover:text-indigo-400"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* States */}
+      {/* Loading */}
       {state === "loading" && (
-        <div className="grid grid-cols-3 gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-lg bg-[rgb(var(--panel))]" />
+        <div className="flex gap-2">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-10 flex-1 animate-pulse rounded-lg bg-[rgb(var(--panel))]" />
           ))}
         </div>
       )}
 
+      {/* Upgrade gate */}
       {state === "upgrade" && (
         <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-center">
           <p className="text-xs font-semibold text-indigo-400">Pro plan required</p>
@@ -590,49 +650,59 @@ function KeepaSection({ asin }: { asin: string }) {
         </div>
       )}
 
+      {/* Error */}
       {state === "error" && (
         <p className="text-xs text-[rgb(var(--muted))]">
           Could not load market data — try again later.
         </p>
       )}
 
+      {/* Data */}
       {state === "ready" && data && (
         <>
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Sales / Month", value: data.monthlySold != null ? `~${fmt(data.monthlySold)}` : "—", highlight: true },
-              { label: "BSR (Current)", value: fmt(data.salesRankCurrent) },
-              { label: "BSR (30-day avg)", value: fmt(data.salesRank30Avg) },
-              { label: "Buy Box Now", value: fmtGbp(data.buyBoxCurrent) },
-              { label: "Buy Box (30d avg)", value: fmtGbp(data.buyBox30Avg) },
-              { label: "BSR (90-day avg)", value: fmt(data.salesRank90Avg) },
-            ].map(({ label, value, highlight }) => (
-              <div
-                key={label}
-                className={`rounded-lg border p-2.5 text-center ${
-                  highlight
-                    ? "border-indigo-500/30 bg-indigo-500/5"
-                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-                }`}
-              >
-                <p className="text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">{label}</p>
-                <p className={`mt-0.5 text-xs font-bold font-mono ${highlight ? "text-indigo-400" : "text-[rgb(var(--text))]"}`}>
-                  {value}
-                </p>
-              </div>
-            ))}
+          {/* Row 1 — Sales/Mo + BSR trend */}
+          <div className="flex items-center gap-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 mb-2">
+            <KStat
+              label="Sales / Mo"
+              value={data.monthlySold != null ? `~${fmt(data.monthlySold)}` : "—"}
+              color="text-indigo-400"
+            />
+            <KDivider />
+            <KStat label="BSR Now"   value={fmt(data.salesRankCurrent)} />
+            <KStat label="30d Avg"   value={fmt(data.salesRank30Avg)}   sub />
+            <KStat label="90d Avg"   value={fmt(data.salesRank90Avg)}   sub />
+            <KStat label="180d Avg"  value={fmt(data.salesRank180Avg)}  sub />
+            <KStat label="365d Avg"  value={fmt(data.salesRank365Avg)}  sub />
           </div>
 
-          {/* Keepa chart */}
-          {chartOpen && (
+          {/* Row 2 — BB Low/High | BSR Best/Worst | Volatility */}
+          <div className="flex items-center gap-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2">
+            <KDivider invisible />
+            <KStat label="BB Low"     value={fmtGbp(data.buyBoxLow)}   color="text-emerald-400" sub />
+            <KStat label="BB High"    value={fmtGbp(data.buyBoxHigh)}  color="text-rose-400"    sub />
+            <KDivider />
+            <KStat label="BSR Best"   value={fmt(data.bsrBest)}        color="text-emerald-400" sub />
+            <KStat label="BSR Worst"  value={fmt(data.bsrWorst)}       color="text-rose-400"    sub />
+            <KDivider />
+            {vcfg ? (
+              <div className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${vcfg.bg} ${vcfg.color}`}>
+                <span>{vcfg.icon}</span>
+                <span>{vcfg.text}</span>
+              </div>
+            ) : (
+              <span className="text-[9px] text-[rgb(var(--muted))]">—</span>
+            )}
+          </div>
+
+          {/* Chart panel */}
+          {activeChartUrl && (
             <div className="mt-3 overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))]">
               <p className="border-b border-[rgb(var(--border))] px-3 py-1.5 text-[9px] uppercase tracking-wider text-[rgb(var(--muted))]">
-                90-day price & rank history · Keepa
+                {CHART_RANGES.find((r) => r.key === chartRange)?.label} price &amp; rank history · Keepa
               </p>
               <img
-                src={data.chartUrl}
-                alt="Keepa price history chart"
+                src={activeChartUrl}
+                alt={`Keepa ${chartRange} price history chart`}
                 className="w-full"
                 loading="lazy"
               />

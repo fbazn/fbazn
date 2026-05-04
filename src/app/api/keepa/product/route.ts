@@ -12,7 +12,11 @@ const KEEPA_DOMAIN = 2; // Amazon UK
 
 // Keepa CSV data-type indices
 const IDX_SALES_RANK = 3;
-const IDX_BUY_BOX = 12;
+const IDX_BUY_BOX   = 18; // index 18 = New FBA / Buy Box (pence)
+
+// Volatility thresholds
+const VOLATILITY_HIGH   = 0.40; // 40%+ swing
+const VOLATILITY_MEDIUM = 0.20; // 20%+ swing
 
 let supabaseAdmin: SupabaseClient | null = null;
 function getSupabase() {
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
   keepaUrl.searchParams.set("key", keepaKey);
   keepaUrl.searchParams.set("domain", String(KEEPA_DOMAIN));
   keepaUrl.searchParams.set("asin", asin);
-  keepaUrl.searchParams.set("stats", "90");
+  keepaUrl.searchParams.set("stats", "365"); // get 30/90/180/365-day averages + min/max
   keepaUrl.searchParams.set("history", "1");
 
   const keepaRes = await fetch(keepaUrl.toString());
@@ -104,35 +108,73 @@ export async function GET(request: NextRequest) {
 
   // ── Parse response ────────────────────────────────────────────────────────
   const stats = product.stats;
+
   const monthlySold: number | null =
     typeof product.monthlySold === "number" && product.monthlySold >= 0
       ? product.monthlySold
       : null;
 
-  // stats.current is an 18-element array; prices are in pence (divide by 100)
-  const salesRankCurrent: number | null = stats?.current?.[IDX_SALES_RANK] ?? null;
-  const buyBoxCurrent: number | null =
-    stats?.current?.[IDX_BUY_BOX] != null && stats.current[IDX_BUY_BOX] > 0
-      ? stats.current[IDX_BUY_BOX] / 100
-      : null;
+  // ── Sales rank ───────────────────────────────────────────────────────────
+  const salesRankCurrent  = stats?.current?.[IDX_SALES_RANK]  ?? null;
+  const salesRank30Avg    = stats?.avg30?.[IDX_SALES_RANK]    ?? null;
+  const salesRank90Avg    = stats?.avg90?.[IDX_SALES_RANK]    ?? null;
+  const salesRank180Avg   = stats?.avg180?.[IDX_SALES_RANK]   ?? null;
+  const salesRank365Avg   = stats?.avg365?.[IDX_SALES_RANK]   ?? null;
+  // min = best rank (lowest number), max = worst rank (highest number)
+  const bsrBest  = stats?.min?.[IDX_SALES_RANK] ?? null;
+  const bsrWorst = stats?.max?.[IDX_SALES_RANK] ?? null;
 
-  // 30-day and 90-day averages (avg30 / avg90 arrays mirror current indices)
-  const salesRank30Avg: number | null = stats?.avg30?.[IDX_SALES_RANK] ?? null;
-  const salesRank90Avg: number | null = stats?.avg90?.[IDX_SALES_RANK] ?? null;
-  const buyBox30Avg: number | null =
-    stats?.avg30?.[IDX_BUY_BOX] != null && stats.avg30[IDX_BUY_BOX] > 0
-      ? stats.avg30[IDX_BUY_BOX] / 100
-      : null;
+  // ── Buy box (pence → pounds) ──────────────────────────────────────────────
+  const pence = (v: number | null | undefined): number | null =>
+    v != null && v > 0 ? v / 100 : null;
+
+  const buyBoxCurrent = pence(stats?.current?.[IDX_BUY_BOX]);
+  const buyBox30Avg   = pence(stats?.avg30?.[IDX_BUY_BOX]);
+  const buyBox90Avg   = pence(stats?.avg90?.[IDX_BUY_BOX]);
+  const buyBoxLow     = pence(stats?.min?.[IDX_BUY_BOX]);
+  const buyBoxHigh    = pence(stats?.max?.[IDX_BUY_BOX]);
+
+  // ── Volatility ────────────────────────────────────────────────────────────
+  let volatility: "high" | "medium" | "low" | null = null;
+  if (buyBoxLow != null && buyBoxHigh != null && buyBoxLow > 0) {
+    const swing = (buyBoxHigh - buyBoxLow) / buyBoxLow;
+    if (swing >= VOLATILITY_HIGH)        volatility = "high";
+    else if (swing >= VOLATILITY_MEDIUM) volatility = "medium";
+    else                                 volatility = "low";
+  }
+
+  // ── Chart URLs (free — no token cost) ────────────────────────────────────
+  const chartBase = `https://graph.keepa.com/pricehistory.png?asin=${asin}&country=gb&salesrank=1&bb=1`;
+  const chartUrls = {
+    d30:  `${chartBase}&range=30`,
+    d90:  `${chartBase}&range=90`,
+    d180: `${chartBase}&range=180`,
+    d365: `${chartBase}&range=365`,
+  };
 
   const payload: KeepaPayload = {
     asin,
     monthlySold,
+    // BSR
     salesRankCurrent,
     salesRank30Avg,
     salesRank90Avg,
+    salesRank180Avg,
+    salesRank365Avg,
+    bsrBest,
+    bsrWorst,
+    // Buy box
     buyBoxCurrent,
     buyBox30Avg,
-    chartUrl: `https://graph.keepa.com/pricehistory.png?asin=${asin}&country=gb&range=90`,
+    buyBox90Avg,
+    buyBoxLow,
+    buyBoxHigh,
+    // Signals
+    volatility,
+    // Charts
+    chartUrls,
+    // Legacy (keep for backward compat with cached data)
+    chartUrl: chartUrls.d90,
   };
 
   // ── Upsert cache ──────────────────────────────────────────────────────────
@@ -148,10 +190,13 @@ export async function GET(request: NextRequest) {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface KeepaStats {
-  current?: (number | null)[];
-  avg30?: (number | null)[];
-  avg90?: (number | null)[];
-  avg180?: (number | null)[];
+  current?:  (number | null)[];
+  avg30?:    (number | null)[];
+  avg90?:    (number | null)[];
+  avg180?:   (number | null)[];
+  avg365?:   (number | null)[];
+  min?:      (number | null)[];
+  max?:      (number | null)[];
 }
 
 interface KeepaProduct {
@@ -167,10 +212,23 @@ interface KeepaResponse {
 export interface KeepaPayload {
   asin: string;
   monthlySold: number | null;
-  salesRankCurrent: number | null;
-  salesRank30Avg: number | null;
-  salesRank90Avg: number | null;
-  buyBoxCurrent: number | null;
-  buyBox30Avg: number | null;
-  chartUrl: string;
+  // BSR
+  salesRankCurrent:  number | null;
+  salesRank30Avg:    number | null;
+  salesRank90Avg:    number | null;
+  salesRank180Avg:   number | null;
+  salesRank365Avg:   number | null;
+  bsrBest:           number | null;
+  bsrWorst:          number | null;
+  // Buy box
+  buyBoxCurrent:     number | null;
+  buyBox30Avg:       number | null;
+  buyBox90Avg:       number | null;
+  buyBoxLow:         number | null;
+  buyBoxHigh:        number | null;
+  // Signals
+  volatility:        "high" | "medium" | "low" | null;
+  // Charts
+  chartUrls:         { d30: string; d90: string; d180: string; d365: string };
+  chartUrl:          string; // legacy
 }
