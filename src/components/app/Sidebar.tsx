@@ -147,7 +147,7 @@ export function Sidebar({
             {reviewQueueCount <= 1 && (
               isExpanded ? (
                 <a
-                  href="https://chromewebstore.google.com/detail/fbazn"
+                  href="https://chromewebstore.google.com/detail/fbazn-%E2%80%94-fba-profit-calcul/gbefcldffkkhhlpfphbaokgoeedbneme"
                   target="_blank"
                   rel="noreferrer"
                   className="group flex items-center gap-2.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 transition hover:border-indigo-500/60 hover:bg-indigo-500/20"
@@ -164,7 +164,7 @@ export function Sidebar({
                 </a>
               ) : (
                 <a
-                  href="https://chromewebstore.google.com/detail/fbazn"
+                  href="https://chromewebstore.google.com/detail/fbazn-%E2%80%94-fba-profit-calcul/gbefcldffkkhhlpfphbaokgoeedbneme"
                   target="_blank"
                   rel="noreferrer"
                   title="Download Extension"
