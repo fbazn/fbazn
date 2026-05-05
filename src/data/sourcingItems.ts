@@ -46,9 +46,12 @@ const baseSelect = `
 /** Items in the review queue (not yet converted, not archived) */
 export async function getReviewQueueCount(): Promise<number> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
   const { count, error } = await supabase
     .from("review_queue")
     .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
     .eq("live_product", false)
     .eq("archived", false);
   if (error) { console.error("Failed to load review queue count", error); return 0; }
@@ -58,9 +61,12 @@ export async function getReviewQueueCount(): Promise<number> {
 /** Active converted products — shown on Sourcing List */
 export async function getActiveProducts(): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("review_queue")
     .select(baseSelect)
+    .eq("user_id", user.id)
     .eq("live_product", true)
     .eq("archived", false)
     .order("updated_at", { ascending: false })
@@ -72,9 +78,12 @@ export async function getActiveProducts(): Promise<SourcingItemRow[]> {
 /** Most recently updated live products — used in sidebar + dashboard */
 export async function getRecentRows(limit = 8): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("review_queue")
     .select(baseSelect)
+    .eq("user_id", user.id)
     .eq("live_product", true)
     .eq("archived", false)
     .order("updated_at", { ascending: false })
@@ -87,9 +96,12 @@ export async function getRecentRows(limit = 8): Promise<SourcingItemRow[]> {
 /** Archived products — shown on Archived page */
 export async function getArchivedProducts(): Promise<SourcingItemRow[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("review_queue")
     .select(baseSelect)
+    .eq("user_id", user.id)
     .eq("archived", true)
     .order("updated_at", { ascending: false })
     .returns<SourcingItemRow[]>();

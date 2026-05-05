@@ -5,6 +5,7 @@ import type { QueueRow } from "./ReviewQueueClient";
 
 export default async function ReviewQueuePage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const [{ data, error }, suppliers] = await Promise.all([
     supabase
@@ -20,6 +21,7 @@ export default async function ReviewQueuePage() {
            supplier:suppliers ( id, name, website, notes )
          )`,
       )
+      .eq("user_id", user?.id ?? "")
       .eq("live_product", false)
       .eq("archived", false)
       .order("created_at", { ascending: false })
