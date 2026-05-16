@@ -8,7 +8,7 @@ const guides = [
     description:
       "The extension is how you add products to FBAZN. While browsing Amazon, click the extension icon to instantly capture an ASIN and send it to your Review Queue.",
     actions: [
-      { label: "Get the extension", href: "https://chrome.google.com/webstore", external: true },
+      { label: "Get the extension", href: "https://chromewebstore.google.com/detail/fbazn-%E2%80%94-fba-profit-calcul/gbefcldffkkhhlpfphbaokgoeedbneme", external: true },
     ],
   },
   {

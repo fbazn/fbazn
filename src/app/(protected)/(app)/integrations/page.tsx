@@ -88,7 +88,7 @@ export default function IntegrationsPage() {
 
               <div className="mt-5">
                 <a
-                  href="https://chrome.google.com/webstore"
+                  href="https://chromewebstore.google.com/detail/fbazn-%E2%80%94-fba-profit-calcul/gbefcldffkkhhlpfphbaokgoeedbneme"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
