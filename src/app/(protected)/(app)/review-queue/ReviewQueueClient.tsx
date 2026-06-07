@@ -850,9 +850,10 @@ function ReviewPanel({
 type Props = {
   initialItems: QueueRow[];
   allSuppliers: Supplier[];
+  keepaData: Record<string, number | null>;
 };
 
-type SortKey = "roi" | "net_profit" | "buy_box_price" | "cost" | "created_at";
+type SortKey = "roi" | "net_profit" | "buy_box_price" | "cost" | "monthly_sold" | "created_at";
 
 function SortTh({
   label,
@@ -885,7 +886,7 @@ function SortTh({
   );
 }
 
-export default function ReviewQueueClient({ initialItems, allSuppliers }: Props) {
+export default function ReviewQueueClient({ initialItems, allSuppliers, keepaData }: Props) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -939,6 +940,9 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
         else { aVal = aEcon.costPrice ?? null; bVal = bEcon.costPrice ?? null; }
       } else if (sortKey === "buy_box_price") {
         aVal = a.buy_box_price; bVal = b.buy_box_price;
+      } else if (sortKey === "monthly_sold") {
+        aVal = keepaData[a.asin] ?? null;
+        bVal = keepaData[b.asin] ?? null;
       } else {
         aVal = new Date(a.created_at).getTime();
         bVal = new Date(b.created_at).getTime();
@@ -948,7 +952,7 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
       if (bVal == null) return -1;
       return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
-  }, [items, sortKey, sortDir]);
+  }, [items, sortKey, sortDir, keepaData]);
 
   function handleStatusChange(id: string, status: QueueStatus) {
     startTransition(async () => {
@@ -1077,6 +1081,7 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
                 <SortTh label="Cost" sortKey="cost" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <SortTh label="Net Profit" sortKey="net_profit" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <SortTh label="ROI" sortKey="roi" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
+                <SortTh label="Sales/mo" sortKey="monthly_sold" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Status</th>
                 <SortTh label="Saved" sortKey="created_at" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <th className="w-10" />
@@ -1086,7 +1091,7 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-20 text-center">
+                  <td colSpan={12} className="px-4 py-20 text-center">
                     <div className="flex flex-col items-center gap-2.5">
                       <span className="text-4xl">📦</span>
                       <span className="font-semibold text-[rgb(var(--text))]">Your queue is empty</span>
@@ -1195,6 +1200,11 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
                     {/* ROI */}
                     <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(econ.roi)}`}>
                       {pct(econ.roi)}
+                    </td>
+
+                    {/* Sales/mo */}
+                    <td className="px-3 py-2.5 text-right font-mono text-[13px] text-indigo-400">
+                      {keepaData[item.asin] != null ? `~${keepaData[item.asin]!.toLocaleString("en-GB")}` : <span className="opacity-30 text-[rgb(var(--muted))]">—</span>}
                     </td>
 
                     {/* Status */}

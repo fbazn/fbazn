@@ -572,7 +572,7 @@ function ProductPanel({
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-type SortKey = "roi" | "net_profit" | "buy_box_price" | "cost_price" | "created_at";
+type SortKey = "roi" | "net_profit" | "buy_box_price" | "cost_price" | "monthly_sold" | "created_at";
 
 function SortTh({
   label,
@@ -605,9 +605,9 @@ function SortTh({
   );
 }
 
-type Props = { initialItems: SourcingItemRow[]; allSuppliers: Supplier[] };
+type Props = { initialItems: SourcingItemRow[]; allSuppliers: Supplier[]; keepaData: Record<string, number | null> };
 
-export default function SourcingClient({ initialItems, allSuppliers }: Props) {
+export default function SourcingClient({ initialItems, allSuppliers, keepaData }: Props) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -638,18 +638,24 @@ export default function SourcingClient({ initialItems, allSuppliers }: Props) {
   const sortedItems = useMemo(() => {
     if (!sortKey) return items;
     return [...items].sort((a, b) => {
-      const aVal: number | null = sortKey === "created_at"
-        ? new Date(a.created_at).getTime()
-        : (a[sortKey] ?? null);
-      const bVal: number | null = sortKey === "created_at"
-        ? new Date(b.created_at).getTime()
-        : (b[sortKey] ?? null);
+      let aVal: number | null;
+      let bVal: number | null;
+      if (sortKey === "monthly_sold") {
+        aVal = keepaData[a.asin] ?? null;
+        bVal = keepaData[b.asin] ?? null;
+      } else if (sortKey === "created_at") {
+        aVal = new Date(a.created_at).getTime();
+        bVal = new Date(b.created_at).getTime();
+      } else {
+        aVal = a[sortKey] ?? null;
+        bVal = b[sortKey] ?? null;
+      }
       if (aVal == null && bVal == null) return 0;
       if (aVal == null) return 1;
       if (bVal == null) return -1;
       return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
-  }, [items, sortKey, sortDir]);
+  }, [items, sortKey, sortDir, keepaData]);
 
   function handleArchive(id: string) {
     return new Promise<void>((resolve, reject) => {
@@ -746,6 +752,7 @@ export default function SourcingClient({ initialItems, allSuppliers }: Props) {
                 <SortTh label="Cost" sortKey="cost_price" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <SortTh label="Net Profit" sortKey="net_profit" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <SortTh label="ROI" sortKey="roi" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
+                <SortTh label="Sales/mo" sortKey="monthly_sold" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <SortTh label="Added" sortKey="created_at" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <th className="w-10" />
               </tr>
@@ -754,7 +761,7 @@ export default function SourcingClient({ initialItems, allSuppliers }: Props) {
 
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-20 text-center">
+                  <td colSpan={10} className="px-4 py-20 text-center">
                     <div className="flex flex-col items-center gap-2.5">
                       <span className="text-4xl">📋</span>
                       <span className="font-semibold text-[rgb(var(--text))]">No active products</span>
@@ -861,6 +868,11 @@ export default function SourcingClient({ initialItems, allSuppliers }: Props) {
                     {/* ROI */}
                     <td className={`px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${profitColour(item.roi)}`}>
                       {pct(item.roi)}
+                    </td>
+
+                    {/* Sales/mo */}
+                    <td className="px-3 py-2.5 text-right font-mono text-[13px] text-indigo-400">
+                      {keepaData[item.asin] != null ? `~${keepaData[item.asin]!.toLocaleString("en-GB")}` : <span className="opacity-30 text-[rgb(var(--muted))]">—</span>}
                     </td>
 
                     {/* Added */}

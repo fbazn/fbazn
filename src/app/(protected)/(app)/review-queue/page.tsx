@@ -1,7 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdmin } from "@supabase/supabase-js";
 import { getSuppliers } from "@/app/actions/suppliers";
 import ReviewQueueClient from "./ReviewQueueClient";
 import type { QueueRow } from "./ReviewQueueClient";
+
+function getAdmin() {
+  return createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
 export default async function ReviewQueuePage() {
   const supabase = await createClient();
@@ -33,7 +41,20 @@ export default async function ReviewQueuePage() {
     console.error("[review_queue] page fetch error:", error);
   }
 
+  const asins = (data ?? []).map((i) => i.asin);
+  const keepaData: Record<string, number | null> = {};
+
+  if (asins.length > 0) {
+    const { data: cacheRows } = await getAdmin()
+      .from("keepa_cache")
+      .select("asin, data")
+      .in("asin", asins);
+    for (const row of cacheRows ?? []) {
+      keepaData[row.asin] = (row.data as { monthlySold?: number | null })?.monthlySold ?? null;
+    }
+  }
+
   return (
-    <ReviewQueueClient initialItems={data ?? []} allSuppliers={suppliers} />
+    <ReviewQueueClient initialItems={data ?? []} allSuppliers={suppliers} keepaData={keepaData} />
   );
 }
