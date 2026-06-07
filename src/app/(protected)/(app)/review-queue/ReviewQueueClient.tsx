@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
 } from "react";
 import { KeepaSection } from "@/components/app/KeepaSection";
 import {
@@ -851,11 +852,55 @@ type Props = {
   allSuppliers: Supplier[];
 };
 
+type SortKey = "roi" | "net_profit" | "buy_box_price" | "cost" | "created_at";
+
+function SortTh({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  right,
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey | null;
+  dir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  right?: boolean;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <th className={`px-3 py-3 text-[10px] font-semibold uppercase tracking-wider${right ? " text-right" : ""}`}>
+      <button
+        onClick={() => onSort(sortKey)}
+        className={`${right ? "ml-auto " : ""}flex items-center gap-1 transition ${active ? "text-[rgb(var(--text))]" : "text-[rgb(var(--muted))] hover:text-[rgb(var(--text))]"}`}
+      >
+        {label}
+        <span className={`font-mono text-[10px] ${active ? "opacity-100" : "opacity-30"}`}>
+          {active ? (dir === "desc" ? "↓" : "↑") : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export default function ReviewQueueClient({ initialItems, allSuppliers }: Props) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkPending, setBulkPending] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
 
   const [items, setOptimisticItems] = useOptimistic(
     initialItems,
@@ -880,6 +925,30 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
   );
 
   const activeItem = items.find((i) => i.id === activeId) ?? null;
+
+  const sortedItems = useMemo(() => {
+    if (!sortKey) return items;
+    return [...items].sort((a, b) => {
+      let aVal: number | null = null;
+      let bVal: number | null = null;
+      if (sortKey === "roi" || sortKey === "net_profit" || sortKey === "cost") {
+        const aEcon = computeEconomics(a, (a.review_queue_suppliers ?? []) as ProductSupplier[]);
+        const bEcon = computeEconomics(b, (b.review_queue_suppliers ?? []) as ProductSupplier[]);
+        if (sortKey === "roi") { aVal = aEcon.roi; bVal = bEcon.roi; }
+        else if (sortKey === "net_profit") { aVal = aEcon.netProfit; bVal = bEcon.netProfit; }
+        else { aVal = aEcon.costPrice ?? null; bVal = bEcon.costPrice ?? null; }
+      } else if (sortKey === "buy_box_price") {
+        aVal = a.buy_box_price; bVal = b.buy_box_price;
+      } else {
+        aVal = new Date(a.created_at).getTime();
+        bVal = new Date(b.created_at).getTime();
+      }
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  }, [items, sortKey, sortDir]);
 
   function handleStatusChange(id: string, status: QueueStatus) {
     startTransition(async () => {
@@ -1004,12 +1073,12 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Item</th>
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Category</th>
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Size Tier</th>
-                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Buy Box</th>
-                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Cost</th>
-                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Net Profit</th>
-                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">ROI</th>
+                <SortTh label="Buy Box" sortKey="buy_box_price" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
+                <SortTh label="Cost" sortKey="cost" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
+                <SortTh label="Net Profit" sortKey="net_profit" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
+                <SortTh label="ROI" sortKey="roi" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <th className="px-3 py-3 text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Status</th>
-                <th className="px-3 py-3 pr-4 text-right text-[10px] font-semibold uppercase tracking-wider text-[rgb(var(--muted))]">Saved</th>
+                <SortTh label="Saved" sortKey="created_at" activeKey={sortKey} dir={sortDir} onSort={toggleSort} right />
                 <th className="w-10" />
               </tr>
             </thead>
@@ -1029,7 +1098,7 @@ export default function ReviewQueueClient({ initialItems, allSuppliers }: Props)
                 </tr>
               )}
 
-              {items.map((item) => {
+              {sortedItems.map((item) => {
                 const isActive = item.id === activeId;
                 const suppliers = (item.review_queue_suppliers ?? []) as ProductSupplier[];
                 const econ = computeEconomics(item, suppliers);
